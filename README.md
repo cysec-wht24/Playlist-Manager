@@ -1,3 +1,7 @@
+# Playlist-Manager
+
+![alt text](<Screenshot from 2025-04-05 15-28-35.png>)
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

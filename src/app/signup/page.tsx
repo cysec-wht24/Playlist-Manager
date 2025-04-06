@@ -17,11 +17,14 @@ import {
  
 export default function SignupFormDemo() {
 
+  const router = useRouter();
   const [user, setUser] = React.useState({
       email: "",
       password: "",
       username: ""
   })
+
+  const [buttonDisabled, setButtonDisabled] = React.useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

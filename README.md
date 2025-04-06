@@ -8,7 +8,7 @@
 npm i axios bcryptjs jsonwebtoken nodemailer react-hot-toast mongoose
 ```
 
-No need to add express in Nextjs (has built-in express alternatives), would be using jwt and nodemailer services as well as mongoose for the ORM to communicate with db, react-hot-toast for popup notification stuff 
+No need to add express in Nextjs (has built-in express alternatives), would be using jwt and nodemailer services as well as mongoose for the ORM to communicate with db, react-hot-toast for popup notification stuff. 
 
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).

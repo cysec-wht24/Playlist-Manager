@@ -1,9 +1,9 @@
 "use client";
 // https://nextjs.org/docs/app/building-your-application/rendering/client-components
 import Link from "next/link";
-import React from "react";
+import React, { useEffect } from "react";
 import {useRouter} from "next/navigation";
-// import {axios} from "axios";
+import axios from "axios";
 // ts requires type defination since axios 
 // type are not defined you have to explicitly install them
 import { Label } from "../../components/ui/label";
@@ -14,6 +14,7 @@ import {
   IconBrandGoogle,
   IconBrandOnlyfans,
 } from "@tabler/icons-react";
+import toast from "react-hot-toast";
  
 export default function SignupFormDemo() {
 
@@ -25,24 +26,42 @@ export default function SignupFormDemo() {
   })
 
   const [buttonDisabled, setButtonDisabled] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    try {
     e.preventDefault();
-    console.log("Form submitted");
-    // backend logic
+    setLoading(true);
+    const response = await axios.post("/api/users/signup", user);
+    console.log("SignUp success", response.data);
+    router.push("/login");
+    } catch (error:any) {
+      toast.error(error.message)
+      console.log("SignUp failed", error.message)
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if(user.email.length > 0 && user.password.length > 0 && user.username.length > 0) {
+      setButtonDisabled(false);
+    } else {
+      setButtonDisabled(true);
+    }
+  }, [user]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
     <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
       <h2 className="text-3xl font-bold text-neutral-800 dark:text-neutral-200">
-        SignUp
+        {loading ? "SignUp" : "SignUp"}
       </h2>
  
       <form className="mt-8" onSubmit={handleSubmit}>
         <div className="mb-4 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
           <LabelInputContainer>
-            <Label htmlFor="userName">Username</Label>
+            <Label htmlFor="username">Username</Label>
             <Input 
               id="username" 
               type="text" 
@@ -56,6 +75,7 @@ export default function SignupFormDemo() {
           <Input 
           id="email" 
           type="email" 
+          autoComplete="email"
           value={user.email} 
           onChange={(e) => setUser({...user, email: e.target.value})}/>
         </LabelInputContainer>
@@ -66,14 +86,14 @@ export default function SignupFormDemo() {
           id="password" 
           type="password" 
           value={user.password} 
-          onChange={(e) => setUser({...user, email: e.target.value})}/>
+          onChange={(e) => setUser({...user, password: e.target.value})}/>
         </LabelInputContainer>
  
  
         <button
           className="my-8 group/btn relative block h-10 w-full rounded-md bg-gradient-to-br from-black to-neutral-600 font-medium text-white shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:bg-zinc-800 dark:from-zinc-900 dark:to-zinc-900 dark:shadow-[0px_1px_0px_0px_#27272a_inset,0px_-1px_0px_0px_#27272a_inset]"
-          type="submit">
-          Sign up &rarr;
+          type="submit" disabled={buttonDisabled || loading}>
+          {loading ? 'Signing up…' : 'Sign up →'}
           <BottomGradient />
         </button>
  

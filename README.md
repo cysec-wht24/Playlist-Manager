@@ -215,3 +215,8 @@ In short, your steps:
 These actions resolved the issues caused by the previous dependency removal and any stale cache data. If you run into similar issues in the future, doing a clean reinstall (or even deleting and recloning if necessary) is often an effective solution.
 
 Moral: Calm down before running any command think before the consequences especially if it invloves deleting or reinstalling something
+________________________________________________________________________________________________________
+
+Note: we'll also get the error dot message in the logs. Now this log message will be available to you on the
+user side in the browser because it's a use client. All the console log messages in the API
+will be available in the bottom section, the terminal, because it's on the server side.

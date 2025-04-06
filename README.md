@@ -10,6 +10,15 @@ npm i axios bcryptjs jsonwebtoken nodemailer react-hot-toast mongoose
 
 No need to add express in Nextjs (has built-in express alternatives), would be using jwt and nodemailer services as well as mongoose for the ORM to communicate with db, react-hot-toast for popup notification stuff. 
 
+you also need to set up your .env file 
+MONGO_URI=
+SECRET_TOKEN=nextjsyoutube
+DOMAIN=http://localhost:3000
+
+connect ssh with github
+ssh -T git@github.com
+git remote set-url origin git@github.com:cysec-wht24/Playlist-Manager.git
+git remote -v : To verify change
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
@@ -183,3 +192,26 @@ In this example:
 
 ### Summary
 Using controlled components with `useState` ensures that your form data is immediately accessible, easy to validate, and seamlessly integrated into your async submission process. This pattern improves the reliability and maintainability of your code by separating input handling from data submission logic.
+______________________________________________________________________________________________________
+
+Situation:
+I was using react dom in framer motion and had used it everywhere when I installed react dom something package for navigation then I uninstalled it it completely uninstalled the package due to wich framer motion accertinity library started giving error so now when I ran this commandrm -rf node_modules and npm install it gave me huge number of errors but then after deleting the project and recloning it from github then instaling autoprefixer and tailwindcss then running this
+ rm -rf node_modules/.cache
+npm run dev it somehow ran without error
+
+Reflection:
+It sounds like the issue was caused by some dependency conflicts and cache inconsistencies. When you uninstalled that navigation-related React DOM package, it probably removed a dependency that Framer Motion (or one of its internals, like the accertinity library) was expecting to be present. This led to a cascade of errors when you reinstalled your modules.
+
+By deleting the project and recloning it from GitHub, you essentially reset your local environment. Then, reinstalling the necessary packages (autoprefixer, tailwindcss, etc.) and clearing the cache with rm -rf node_modules/.cache forced a completely clean install. This removed any leftover or conflicting cache entries and ensured that all dependencies were installed with the correct versions.
+
+In short, your steps:
+
+-> Re-cloning the project helped remove any corrupt or misconfigured local files.
+
+-> Reinstalling dependencies ensured that you had a consistent set of modules.
+
+-> Clearing the cache forced the build system to reprocess all assets from scratch.
+
+These actions resolved the issues caused by the previous dependency removal and any stale cache data. If you run into similar issues in the future, doing a clean reinstall (or even deleting and recloning if necessary) is often an effective solution.
+
+Moral: Calm down before running any command think before the consequences especially if it invloves deleting or reinstalling something

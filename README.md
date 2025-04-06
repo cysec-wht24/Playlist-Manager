@@ -217,6 +217,16 @@ These actions resolved the issues caused by the previous dependency removal and 
 Moral: Calm down before running any command think before the consequences especially if it invloves deleting or reinstalling something
 ________________________________________________________________________________________________________
 
-Note: we'll also get the error dot message in the logs. Now this log message will be available to you on the
+Note: 
+1) We'll also get the error dot message in the logs. Now this log message will be available to you on the
 user side in the browser because it's a use client. All the console log messages in the API
 will be available in the bottom section, the terminal, because it's on the server side.
+
+2) Now, once everything is verified that your user exists, your password is correct, then
+we actually create a token. This token is created by simply JSON web token. We encrypt that.
+Obviously it's not just a plain token. And we send this token into users cookies, not in the 
+user local storage because he can manipulate the token there. But we can send the secure 
+cookie to the user. And then later on whenever we wish, we can access those cookies as well. 
+So it helps as a bridger to verify whenever the user we want to verify, it just has the id of the
+user, but it can have a lot of payload into that. You can send a user id, email, admin, type, 
+whatever you wish. You can send all this data as a payload to that.

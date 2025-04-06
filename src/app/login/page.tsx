@@ -6,8 +6,6 @@ import {useRouter} from "next/navigation";
 // import {axios} from "axios";
 // ts requires type defination since axios 
 // type are not defined you have to explicitly install them
-
-
 import { Label } from "../../components/ui/label";
 import { Input } from "../../components/ui/input";
 import { cn } from "../../../lib/utils";
@@ -17,11 +15,20 @@ import {
   IconBrandOnlyfans,
 } from "@tabler/icons-react";
  
+
 export default function LoginFormDemo() {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+
+const [user, setUser] = React.useState({
+    email: "",
+    password: ""
+})
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("Form submitted");
   };
+
+
   return (
     <div className="min-h-screen flex items-center justify-center">
     <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
@@ -29,14 +36,23 @@ export default function LoginFormDemo() {
         Login
       </h2>
  
-      <form className="my-8" onSubmit={handleSubmit}>
+      <form className="mt-8" onSubmit={handleSubmit}>
         <LabelInputContainer className="mb-4">
           <Label htmlFor="email">Email Address</Label>
-          <Input id="email" type="email" />
+          <Input 
+          id="email" 
+          type="email" 
+          value={user.email} 
+          onChange={(e) => setUser({...user, email: e.target.value})}/>
         </LabelInputContainer>
+                                    {/* spread operator ...user */}
         <LabelInputContainer className="mb-4">
           <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" />
+          <Input 
+          id="password" 
+          type="password" 
+          value={user.password} 
+          onChange={(e) => setUser({...user, email: e.target.value})}/>
         </LabelInputContainer>
  
         <button
@@ -60,7 +76,16 @@ export default function LoginFormDemo() {
           </span>
           <BottomGradient />
         </button>
-        <Link href="/signup">SignUp</Link>
+        
+        <div className="text-center">
+            <span className="text-neutral-700 dark:text-neutral-300 text-sm">
+            Don't have an account?{" "}
+            </span>
+            <Link href="/signup">
+            <span className="underline text-sm text-neutral-700 dark:text-neutral-300">Signup</span>
+            </Link>
+        </div>
+
         </div>
       </form>
     </div>

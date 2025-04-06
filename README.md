@@ -230,3 +230,7 @@ cookie to the user. And then later on whenever we wish, we can access those cook
 So it helps as a bridger to verify whenever the user we want to verify, it just has the id of the
 user, but it can have a lot of payload into that. You can send a user id, email, admin, type, 
 whatever you wish. You can send all this data as a payload to that.
+_______________________________________________________________________________________________________
+
+Question 
+1) What is this __next_hmr_refresh_hash__ what is this thing 4df371a36076ac33e9e387abd8fa88c2633457081244afec why is it coming along side my jwt token ?

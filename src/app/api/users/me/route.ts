@@ -1,23 +1,39 @@
-import { getDataFromToken } from "@/helpers/getDataFromToken";
-
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import jwt from "jsonwebtoken";
 import User from "@/models/userModel";
 import { connect } from "@/dbConfig/dbConfig";
 
 connect();
 
-export async function GET(request:NextRequest){
+export async function GET() {
+  try {
+    const token = (await cookies()).get("token")?.value;
+    console.log("🍪 token:", token);
 
-    try {
-        const userId = await getDataFromToken(request);
-        const user = await User.findOne({_id: userId}).select("-password");
-        return NextResponse.json({
-            mesaaage: "User found",
-            data: user
-        })
-    } catch (error:any) {
-        return NextResponse.json({error: error.message}, {status: 400});
+    if (!token) {
+      console.log("⚠️ no token found");
+      return NextResponse.json({ error: "Token missing" }, { status: 400 });
     }
 
+    const decoded = jwt.verify(token, process.env.SECRET_TOKEN!) as { id: string };
+    console.log("🔓 decoded:", decoded);
+
+    const user = await User.findById(decoded.id).select("-password");
+    if (!user) {
+      console.log("⚠️ user not found for id", decoded.id);
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "User found", data: user }, { status: 200 });
+  } catch (err: any) {
+    console.error("🔥 route error:", err);
+    // send back err.message so it’s never undefined
+    return NextResponse.json(
+      { error: err.message || "Unknown error" },
+      { status: err.message === "Token missing" ? 400 : 401 }
+    );
+  }
 }
+
 

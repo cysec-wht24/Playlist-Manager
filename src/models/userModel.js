@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: [true, "please provide a password"],
+        required: [true, "Please provide a password"],
     },
     isVerified: {
         type: Boolean,
@@ -27,10 +27,9 @@ const userSchema = new mongoose.Schema({
     forgotPasswordTokenExpiry: Date,
     verifyToken: String,
     verifyTokenExpiry: Date,
-})
+});
 
-const User = mongoose.models.user || mongoose.model("users", userSchema); 
-// everything is small and plurarized
-
+// Check if the model is already compiled. Use the same model name ("users") in both places.
+const User = mongoose.models.users || mongoose.model("users", userSchema);
 
 export default User;

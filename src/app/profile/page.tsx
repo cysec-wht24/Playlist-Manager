@@ -21,11 +21,18 @@ export default function ProfilePage() {
     }
 
     const getUserDetails = async () => {
-        const res = await axios.get('/api/users/me')
-        console.log(res.data);
-        setData(res.data.data._id)
-    }
-
+        try {
+            const res = await axios.get('/api/users/me', {
+                withCredentials: true
+            });
+            console.log(res.data);
+            setData(res.data.data._id);
+        } catch (err: any) {
+            console.error(err.response?.data || err.message);
+            toast.error(err.response?.data?.message || "Something went wrong");
+        }
+    };
+    
     return (
         <div className="flex flex-col items-center justify-center min-h-screen py-2">
             <h1>Profile</h1>

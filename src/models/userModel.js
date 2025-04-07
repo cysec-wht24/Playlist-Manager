@@ -29,7 +29,8 @@ const userSchema = new mongoose.Schema({
     verifyTokenExpiry: Date,
 })
 
-const User = mongoose.models.user || mongoose.model // everythinf is small and plurarized
-("users", userSchema);
+const User = mongoose.models.user || mongoose.model("users", userSchema); 
+// everything is small and plurarized
+
 
 export default User;

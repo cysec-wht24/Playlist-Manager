@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
-  const isPublicPath = path === '/login' || path === '/signup'
+  const isPublicPath = path === '/login' || path === '/signup' || path === '/verifyemail'
 // we have 2 variables now, if the path is public is public and user 
 // has a token they should not be able to access that path
   const token = request.cookies.get('token')?.value || ''
@@ -17,8 +17,6 @@ export function middleware(request: NextRequest) {
   if(!isPublicPath && !token) {
     return NextResponse.redirect(new URL('/login', request.nextUrl))
   }
-
-
 }
  
 // See "Matching Paths" below to learn more

@@ -13,6 +13,7 @@ import {
   IconBrandGoogle,
 } from "@tabler/icons-react";
 import toast from "react-hot-toast";
+import { BackgroundLines } from "@/components/ui/background-lines";
  
 
 export default function LoginFormDemo() {
@@ -51,6 +52,7 @@ const [user, setUser] = React.useState({
     }, [user]);
 
   return (
+    
     <div className="min-h-screen flex items-center justify-center">
     <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
       <h2 className="text-3xl font-bold text-neutral-800 dark:text-neutral-200">
@@ -109,6 +111,7 @@ const [user, setUser] = React.useState({
       </form>
     </div>
     </div>
+    
   );
 }
  

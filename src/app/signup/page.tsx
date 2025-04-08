@@ -13,6 +13,7 @@ import {
   IconBrandGoogle,
 } from "@tabler/icons-react";
 import toast from "react-hot-toast";
+import { BackgroundLines } from "@/components/ui/background-lines";
  
 export default function SignupFormDemo() {
 

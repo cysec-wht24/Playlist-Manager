@@ -9,6 +9,7 @@ import axios from "axios";
 import { Label } from "../../components/ui/label";
 import { Input } from "../../components/ui/input";
 import { cn } from "../../../lib/utils";
+import { Vortex } from "../../components/ui/vortex";
 import {
   IconBrandGoogle,
 } from "@tabler/icons-react";
@@ -52,8 +53,17 @@ const [user, setUser] = React.useState({
     }, [user]);
 
   return (
+
+    <div className="w-full h-screen overflow-hidden">
+      <Vortex
+        backgroundColor="black"
+        rangeY={800}
+        particleCount={500}
+        baseHue={120}
+        className="flex items-center flex-col justify-center w-full h-full"
+      >
     
-    <div className="min-h-screen flex items-center justify-center">
+    {/* <div className="min-h-screen flex items-center justify-center"> */}
     <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
       <h2 className="text-3xl font-bold text-neutral-800 dark:text-neutral-200">
       {loading ? "Login" : "Login"}
@@ -110,8 +120,10 @@ const [user, setUser] = React.useState({
         </div>
       </form>
     </div>
-    </div>
+    {/* </div> */}
+    </Vortex>
     
+    </div>
   );
 }
  

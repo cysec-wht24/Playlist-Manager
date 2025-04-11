@@ -48,6 +48,7 @@ import { cn } from "../../../lib/utils";
 import {useRouter} from "next/navigation";
 import axios from "axios";
 import {toast} from "react-hot-toast";
+import { h1 } from "framer-motion/client";
 
 //optional, maybe should be in route.ts of profile
 function getCookie(name: string): string | null {
@@ -167,10 +168,54 @@ export const LogoIcon = () => {
 // Dummy dashboard component with content
 const Dashboard = () => {
   return (
+    
     <div className="flex flex-1">
       <div className="flex h-full w-full flex-1 flex-col gap-2 rounded-tl-2xl border border-neutral-200 bg-white p-2 md:p-10 dark:border-neutral-700 dark:bg-neutral-900">
-        
       
+      <header className="p-6 border-b flex justify-between bg-blue-500 rounded-lg">
+      <h1 className="text-2xl font-bold text-white">CRUD operation</h1>
+      <Link href={"/create"}
+        className="bg-slate-100 grid place-items-center py-2 px-4 rounded-full font-bold shadow-md ">Add New</Link>
+      </header>
+
+      <h2 className="text-2xl font-bold text-white mt-4 mb-6">Created Playlists: </h2>
+
+      <div className="w-full mx-auto">
+      <div className="group relative bg-black border border-gray-700 rounded-lg overflow-hidden shadow-lg flex">
+        {/* <!-- Left: Image Placeholder + padding so it doesn't touch the edges --> */}
+        <div className="p-4 flex items-center justify-center">
+          <a href="#" className="block">
+            <div className="h-32 w-44 bg-gray-800 flex items-center justify-center rounded-lg">
+              <span className="text-sm text-gray-400">Image Placeholder</span>
+            </div>
+          </a>
+        </div>
+        {/* <!-- Right: Playlist Details --> */}
+        <div className="flex-1 p-4 flex flex-col justify-between">
+          {/* <!-- Top Section: Playlist Name and Video Count (2 rows of text) --> */}
+          <div>
+            <h2 className="mt-1 text-xl font-bold text-gray-300">Name: Playlist Name</h2>
+            <p className="mt-1 text-md font-bold text-gray-300">No. of videos: 10</p>
+          </div>
+          {/* <!-- Bottom Section: Edit and Delete Buttons, aligned bottom-right --> */}
+          <div className="flex justify-end space-x-4 mt-4">
+          <a
+            href="/workspace"
+            className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
+          >
+            Edit
+          </a>
+          <button
+            className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
+          >
+            Delete
+          </button>
+        </div>
+        </div>
+        </div>
+        {/* <!-- Hover Bottom Gradient (optional) --> */}
+
+      </div>
 
       </div>
     </div>

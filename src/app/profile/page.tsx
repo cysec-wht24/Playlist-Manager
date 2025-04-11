@@ -1,87 +1,45 @@
-//     const [data, setData] = useState("nothing")
-
-
-//     const getUserDetails = async () => {
-//         try {
-//             const res = await axios.get('/api/users/me', {
-//                 withCredentials: true
-//             });
-//             console.log(res.data);
-//             setData(res.data.data._id);
-//         } catch (err: any) {
-//             console.error(err.response?.data || err.message);
-//             toast.error(err.response?.data?.message || "Something went wrong");
-//         }
-//     };
-    
-//     return (
-//         <div className="flex flex-col items-center justify-center min-h-screen py-2">
-//             <h1>Profile</h1>
-//             <hr />
-//             <p>Profile page</p>
-//             <h2 className="p-1 rounded bg-green-500">
-//                 {data === 'nothing' ? "Nothing" : <Link href={`/profile/${data}`}>{data}</Link>}
-//             </h2>
-
-
-//             <button onClick={getUserDetails} className="bg-green-800 mt-4 
-//             hover:bg-blue-700 text-white font-bold 
-//             py-2 px-4 rounded">Get User Details</button>
-
-//         </div>
-//     )
-// }
-
 "use client";
 import React, { useState, useEffect } from "react";
 import { Sidebar, SidebarBody, SidebarLink } from "../../components/ui/sidebar";
-import {
-  IconArrowLeft,
-  IconBrandTabler,
-  IconSettings,
-  IconUserBolt,
-} from "@tabler/icons-react";
+import { IconArrowLeft, IconSettings, } from "@tabler/icons-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import { cn } from "../../../lib/utils";
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
 import axios from "axios";
-import {toast} from "react-hot-toast";
-import { h1 } from "framer-motion/client";
+import { toast } from "react-hot-toast";
 
-//optional, maybe should be in route.ts of profile
+// Optional, maybe should be in route.ts of profile
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
   return match ? decodeURIComponent(match[2]) : null;
 }
 
 export default function SidebarDemo() {
-  const router = useRouter()
+  const router = useRouter();
 
   useEffect(() => {
     const token = getCookie("token");
     if (!token) {
       router.push("/login");
     }
-  }, []);
-  
+  }, [router]);
 
   const logout = async () => {
     try {
       console.log("Calling logout API..."); // Debug log
-      const response = await axios.get('/api/users/logout'); // Call the logout API
+      const response = await axios.get("/api/users/logout");
       console.log("Logout API response:", response.data); // Debug log
-  
+
       if (response.data.success) {
-        toast.success(response.data.message); // Display the success message from the API
-        router.push('/login'); // Redirect to the login page
+        toast.success(response.data.message);
+        router.push("/login");
       } else {
-        toast.error('Logout failed'); // Handle unexpected cases
+        toast.error("Logout failed");
       }
     } catch (error: any) {
-      console.error("Logout error:", error.message); // Debug log
-      toast.error('An error occurred while logging out'); // Display error message
+      console.error("Logout error:", error.message);
+      toast.error("An error occurred while logging out");
     }
   };
 
@@ -102,20 +60,15 @@ export default function SidebarDemo() {
       onClick: logout,
     },
   ];
+
   const [open, setOpen] = useState(false);
+
   return (
-    <div
-      className={cn(
-        "mx-auto flex w-full flex-1 flex-col overflow-hidden rounded-md border border-neutral-200 bg-gray-100 md:flex-row dark:border-neutral-700 dark:bg-neutral-800",
-        "h-screen", // for your use case, use `h-screen` instead of `h-[60vh]`
-      )}
-    >
-      <Sidebar open={open} setOpen={setOpen} animate={false}>
+    <div className={cn("mx-auto flex w-full flex-1 flex-col overflow-hidden rounded-md border border-neutral-200 bg-gray-100 md:flex-row dark:border-neutral-700 dark:bg-neutral-800 h-screen")}>
+      <Sidebar open={open} setOpen={setOpen} animate={true}>
         <SidebarBody className="justify-between gap-10">
           <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
-            <>
-              <Logo />
-            </>
+            <Logo />
             <div className="mt-8 flex flex-col gap-2">
               {links.map((link, idx) => (
                 <SidebarLink key={idx} link={link} />
@@ -137,87 +90,101 @@ export default function SidebarDemo() {
     </div>
   );
 }
+
 export const Logo = () => {
   return (
     <Link
       href="#"
-      className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
-    >
+      className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black">
       <div className="h-5 w-6 shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-black dark:bg-white" />
       <motion.span
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="font-medium whitespace-pre text-black dark:text-white"
-      >
+        className="font-medium whitespace-pre text-black dark:text-white">
         PlayStar
       </motion.span>
     </Link>
   );
 };
-export const LogoIcon = () => {
-  return (
-    <Link
-      href="#"
-      className="relative z-20 flex items-center space-x-2 py-1 text-sm font-normal text-black"
-    >
-      <div className="h-5 w-6 shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-black dark:bg-white" />
-    </Link>
-  );
-};
 
-// Dummy dashboard component with content
+
 const Dashboard = () => {
+  // Example list of playlists
+  const playlists = [
+    { id: "123", name: "Playlist 1", videos: 10 },
+    { id: "456", name: "Playlist 2", videos: 5 },
+    { id: "789", name: "Playlist 3", videos: 8 },
+  ];
+
+  const router = useRouter();
+
+  // Edit handler for a specific playlist
+  const handleEdit = (id: string) => {
+    router.push(`/profile/workspace?id=${id}`); // Navigate to the workspace with the playlist ID
+  };
+
   return (
-    
     <div className="flex flex-1">
       <div className="flex h-full w-full flex-1 flex-col gap-2 rounded-tl-2xl border border-neutral-200 bg-white p-2 md:p-10 dark:border-neutral-700 dark:bg-neutral-900">
-      
-      <header className="p-6 border-b flex justify-between bg-blue-500 rounded-lg">
-      <h1 className="text-2xl font-bold text-white">CRUD operation</h1>
-      <Link href={"/create"}
-        className="bg-slate-100 grid place-items-center py-2 px-4 rounded-full font-bold shadow-md ">Add New</Link>
-      </header>
+        <header className="p-6 border-b flex justify-between bg-black rounded-lg">
+          <h1 className="text-2xl font-bold text-white">CRUD Operation</h1>
+          <Link
+            href="/create"
+            className="bg-slate-100 grid place-items-center py-2 px-4 rounded-full font-bold shadow-md"
+          >
+            Add New
+          </Link>
+        </header>
 
-      <h2 className="text-2xl font-bold text-white mt-4 mb-6">Created Playlists: </h2>
+        <h2 className="text-2xl font-bold text-white mt-4 mb-6">
+          Created Playlists:
+        </h2>
 
-      <div className="w-full mx-auto">
-      <div className="group relative bg-black border border-gray-700 rounded-lg overflow-hidden shadow-lg flex">
-        {/* <!-- Left: Image Placeholder + padding so it doesn't touch the edges --> */}
-        <div className="p-4 flex items-center justify-center">
-          <a href="#" className="block">
-            <div className="h-32 w-44 bg-gray-800 flex items-center justify-center rounded-lg">
-              <span className="text-sm text-gray-400">Image Placeholder</span>
+        {/* Render the list of playlists */}
+        <div className="w-full mx-auto">
+          {playlists.map((playlist) => (
+            <div
+              key={playlist.id}
+              className="group relative bg-black border border-gray-700 rounded-lg overflow-hidden shadow-lg flex mb-4"
+            >
+              {/* Left: Image Placeholder */}
+              <div className="p-4 flex items-center justify-center">
+                <a href="#">
+                  <div className="h-32 w-44 bg-gray-800 flex items-center justify-center rounded-lg">
+                    <span className="text-sm text-gray-400">Image Placeholder</span>
+                  </div>
+                </a>
+              </div>
+              {/* Right: Playlist Details */}
+              <div className="flex-1 p-4 flex flex-col justify-between">
+                <div>
+                  <h2 className="mt-1 text-xl font-bold text-gray-300">
+                    Name: {playlist.name}
+                  </h2>
+                  <p className="mt-1 text-md font-bold text-gray-300">
+                    No. of videos: {playlist.videos}
+                  </p>
+                </div>
+                <div className="flex justify-end space-x-4 mt-4">
+                  <a
+                    href="#"
+                    onClick={() => handleEdit(playlist.id)} // Pass the playlist ID
+                    className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
+                  >
+                    Activate
+                  </a>
+                  <button
+                    className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             </div>
-          </a>
+          ))}
         </div>
-        {/* <!-- Right: Playlist Details --> */}
-        <div className="flex-1 p-4 flex flex-col justify-between">
-          {/* <!-- Top Section: Playlist Name and Video Count (2 rows of text) --> */}
-          <div>
-            <h2 className="mt-1 text-xl font-bold text-gray-300">Name: Playlist Name</h2>
-            <p className="mt-1 text-md font-bold text-gray-300">No. of videos: 10</p>
-          </div>
-          {/* <!-- Bottom Section: Edit and Delete Buttons, aligned bottom-right --> */}
-          <div className="flex justify-end space-x-4 mt-4">
-          <a
-            href="/workspace"
-            className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
-          >
-            Edit
-          </a>
-          <button
-            className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
-          >
-            Delete
-          </button>
-        </div>
-        </div>
-        </div>
-        {/* <!-- Hover Bottom Gradient (optional) --> */}
-
-      </div>
-
       </div>
     </div>
   );
 };
+

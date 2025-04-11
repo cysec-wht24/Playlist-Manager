@@ -1,6 +1,10 @@
+"use client";
+import { useSearchParams } from "next/navigation";
 import React from "react";
 
 export default function Workspace() {
+    const searchParams = useSearchParams();
+    const playlistId = searchParams.get("playlistId");
 
     return (
         <div className="flex flex-col items-center justify-center h-screen">
@@ -11,7 +15,7 @@ export default function Workspace() {
             <div className="flex-1 flex flex-col space-y-4">
             {/* <!-- Video Section --> */}
             <div className="flex-[3] bg-gray-700 rounded-lg p-4">
-                Video
+                Video and Workspace for Playlist ID:{" "}
             </div>
             {/* <!-- Editing Settings Section --> */}
             <div className="flex-[1] bg-gray-700 rounded-lg p-4">

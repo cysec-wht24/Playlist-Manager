@@ -51,7 +51,7 @@ export default function SignupFormDemo() {
   }, [user]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[rgba(255,255,255,0.1)] to-[rgb(0,0,0)]">
     <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
       <h2 className="text-3xl font-bold text-neutral-800 dark:text-neutral-200">
         {loading ? "SignUp" : "SignUp"}

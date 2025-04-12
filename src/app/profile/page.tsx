@@ -125,14 +125,33 @@ export const Logo = () => {
 
 
 const Dashboard = () => {
-  // Example list of playlists
-  const playlists = [
-    { id: "123", name: "Playlist 1", videos: 10 },
-    { id: "456", name: "Playlist 2", videos: 5 },
-    { id: "789", name: "Playlist 3", videos: 8 },
-  ];
+  // Define the type for playlists
+  
+  type Playlist = {
+    id: string;
+    name: string;
+    videos: number;
+  };
+
+  // State to manage playlists
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
   const router = useRouter();
+
+  // Add a new playlist
+  const handleAddNew = () => {
+    const newPlaylist: Playlist = {
+      id: Date.now().toString(), // Unique ID based on timestamp
+      name: `Playlist ${playlists.length + 1}`,
+      videos: 0, // Default number of videos
+    };
+    setPlaylists([...playlists, newPlaylist]); // Add the new playlist to the state
+  };
+
+  // Delete a playlist
+  const handleDelete = (id: string) => {
+    setPlaylists(playlists.filter((playlist) => playlist.id !== id)); // Remove the playlist with the given ID
+  };
 
   // Edit handler for a specific playlist
   const handleEdit = (id: string) => {
@@ -140,25 +159,28 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex flex-1">
-      <div className="flex h-full w-full flex-1 flex-col gap-2 rounded-tl-2xl border border-neutral-200 bg-white p-2 md:p-10 dark:border-neutral-700 dark:bg-neutral-900">
-        <header className="p-6 border-b flex justify-between bg-black rounded-lg">
-          <h1 className="text-2xl font-bold text-white">CRUD Operation</h1>
-          <Link
-            href="/create"
-            className="bg-slate-100 grid place-items-center py-2 px-4 rounded-full font-bold shadow-md"
-          >
-            Add New
-          </Link>
-        </header>
 
-        <h2 className="text-2xl font-bold text-white mt-4 mb-6">
+    <div className="flex flex-1 flex-col h-screen rounded-tl-2xl rounded-tr-2xl overflow-hidden border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
+      {/* Navbar */}
+      <header className="sticky top-0 z-10 bg-black p-6 border-b border-neutral-700 flex justify-between items-center rounded-tl-2xl rounded-tr-2xl">
+        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+        <button
+          onClick={handleAddNew} // Add a new playlist when clicked
+          className="bg-slate-100 grid place-items-center py-2 px-4 rounded-full font-bold shadow-md"
+        >
+          Add New
+        </button>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <h2 className="text-2xl font-bold text-black dark:text-white mb-6">
           Created Playlists:
         </h2>
 
         {/* Render the list of playlists */}
         <div className="w-full mx-auto">
-          {playlists.map((playlist) => (
+          {Array.isArray(playlists) && playlists.map((playlist) => (
             <div
               key={playlist.id}
               className="group relative bg-black border border-gray-700 rounded-lg overflow-hidden shadow-lg flex mb-4"
@@ -190,6 +212,7 @@ const Dashboard = () => {
                     Activate
                   </a>
                   <button
+                    onClick={() => handleDelete(playlist.id)} // Delete the playlist
                     className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
                   >
                     Delete
@@ -201,6 +224,7 @@ const Dashboard = () => {
         </div>
       </div>
     </div>
+    
   );
 };
 

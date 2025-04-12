@@ -10,9 +10,7 @@ import { Label } from "../../components/ui/label";
 import { Input } from "../../components/ui/input";
 import { cn } from "../../../lib/utils";
 import { Vortex } from "../../components/ui/vortex";
-import {
-  IconBrandGoogle,
-} from "@tabler/icons-react";
+import { IconBrandGoogle } from "@tabler/icons-react";
 import toast from "react-hot-toast";
 import { BackgroundLines } from "@/components/ui/background-lines";
  

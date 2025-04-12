@@ -17,6 +17,22 @@ function getCookie(name: string): string | null {
 
 export default function SidebarDemo() {
   const router = useRouter();
+  const [username, setUsername] = useState("Username");
+
+  // Fetch username from the /api/users/me endpoint
+  useEffect(() => {
+    const fetchUsername = async () => {
+      try {
+        const response = await axios.get("/api/users/me");
+        setUsername(response.data.data.username); // Update the username state
+      } catch (error: any) {
+        console.error("Error fetching username:", error.message);
+        toast.error("Failed to fetch user data");
+      }
+    };
+
+    fetchUsername();
+  }, []); // This runs only once when the component mounts
 
   useEffect(() => {
     const token = getCookie("token");
@@ -78,7 +94,7 @@ export default function SidebarDemo() {
           <div>
             <SidebarLink
               link={{
-                label: "Manu Arora",
+                label: username || "Loading...",
                 href: "#",
                 icon: null,
               }}

@@ -25,7 +25,7 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "User found", data: user }, { status: 200 });
+    return NextResponse.json({ message: "User found", data: {username: user.username}}, { status: 200 });
   } catch (err: any) {
     console.error("🔥 route error:", err);
     // send back err.message so it’s never undefined

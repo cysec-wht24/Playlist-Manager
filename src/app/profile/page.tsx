@@ -136,6 +136,8 @@ const Dashboard = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null); // State for editing
+  const [newPlaylistName, setNewPlaylistName] = useState<string>(""); // State for the new name
   const router = useRouter();
 
   // Fetch playlists from the backend
@@ -159,14 +161,44 @@ const Dashboard = () => {
 
   // Add a new playlist
   const handleAddNew = async () => {
+    const playlistName = prompt("Enter the name of the new playlist:");
+    if (!playlistName || !playlistName.trim()) {
+      toast.error("Playlist name cannot be empty.");
+      return;
+    }
+
     try {
-      const playlistName = `Playlist ${playlists.length + 1}`;
       const response = await axios.post("/api/users/profile", { playlistName });
       setPlaylists([...playlists, response.data.playlist]);
       toast.success("Playlist created successfully!");
     } catch (error: any) {
       console.error("Error creating playlist:", error);
       toast.error(error.response?.data?.error || "Failed to create playlist. Please try again.");
+    }
+  };
+
+  // Rename a playlist
+  const handleRename = async (playlistId: string) => {
+    const newName = prompt("Enter the new name for the playlist:");
+    if (!newName || !newName.trim()) {
+      toast.error("Playlist name cannot be empty.");
+      return;
+    }
+
+    try {
+      const response = await axios.patch("/api/users/profile", {
+        playlistId,
+        newName,
+      });
+      setPlaylists(
+        playlists.map((playlist) =>
+          playlist._id === playlistId ? response.data.playlist : playlist
+        )
+      );
+      toast.success("Playlist renamed successfully!");
+    } catch (error: any) {
+      console.error("Error renaming playlist:", error);
+      toast.error(error.response?.data?.error || "Failed to rename playlist. Please try again.");
     }
   };
 
@@ -254,6 +286,12 @@ const Dashboard = () => {
                     className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
                   >
                     Activate
+                  </button>
+                  <button
+                    onClick={() => handleRename(playlist._id)}
+                    className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
+                  >
+                    Rename
                   </button>
                   <button
                     onClick={() => handleDelete(playlist._id)}

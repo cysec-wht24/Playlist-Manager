@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Sidebar, SidebarBody, SidebarLink } from "../../components/ui/sidebar";
 import { IconArrowLeft, IconSettings, } from "@tabler/icons-react";
 import Link from "next/link";
@@ -132,20 +132,16 @@ export const Logo = () => {
 };
 
 const Dashboard = () => {
-
-
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null); // State for editing
-  const [newPlaylistName, setNewPlaylistName] = useState<string>(""); // State for the new name
   const router = useRouter();
 
-  // Fetch playlists from the backend
-  const fetchPlaylists = async () => {
-    try {
+  // Fetch playlists from the backend.
+  const fetchPlaylists = useCallback(async () => {
+    try { //wanna remove callback just remove callBack()
       setLoading(true);
-      setError(null); // Reset error state
+      setError(null);
       const response = await axios.get("/api/users/profile");
       setPlaylists(response.data.playlists);
     } catch (error: any) {
@@ -154,11 +150,11 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchPlaylists();
-  }, []);
+  }, [fetchPlaylists]);
 
   // Add a new playlist
   const handleAddNew = async () => {
@@ -246,10 +242,7 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto p-4">
-        <h2 className="text-2xl font-bold text-black dark:text-white mb-6">
-          Created Playlists:
-        </h2>
-
+        <h2 className="text-2xl font-bold text-black dark:text-white mb-6">Created Playlists:</h2>
         {loading ? (
           <p className="text-center text-gray-500">Loading playlists...</p>
         ) : error ? (
@@ -307,7 +300,7 @@ const Dashboard = () => {
         ) : (
           <p className="text-center text-gray-500">No playlists found.</p>
         )}
-      </div>
+      </div> // can make it main for SEO
     </div>
   );
 };

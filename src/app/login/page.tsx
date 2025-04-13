@@ -9,10 +9,8 @@ import axios from "axios";
 import { Label } from "../../components/ui/label";
 import { Input } from "../../components/ui/input";
 import { cn } from "../../../lib/utils";
-import { Vortex } from "../../components/ui/vortex";
 import { IconBrandGoogle } from "@tabler/icons-react";
 import toast from "react-hot-toast";
-import { BackgroundLines } from "@/components/ui/background-lines";
  
 
 export default function LoginFormDemo() {
@@ -52,16 +50,7 @@ const [user, setUser] = React.useState({
 
   return (
 
-    <div className="w-full h-screen overflow-hidden">
-      <Vortex
-        backgroundColor="black"
-        rangeY={800}
-        particleCount={500}
-        baseHue={120}
-        className="flex items-center flex-col justify-center w-full h-full"
-      >
-    
-    {/* <div className="min-h-screen flex items-center justify-center"> */}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[rgba(255,255,255,0.1)] to-[rgb(0,0,0)]">
     <div className="shadow-input mx-auto w-full max-w-md rounded-none bg-white p-4 md:rounded-2xl md:p-8 dark:bg-black">
       <h2 className="text-3xl font-bold text-neutral-800 dark:text-neutral-200">
       {loading ? "Login" : "Login"}
@@ -118,9 +107,6 @@ const [user, setUser] = React.useState({
         </div>
       </form>
     </div>
-    {/* </div> */}
-    </Vortex>
-    
     </div>
   );
 }

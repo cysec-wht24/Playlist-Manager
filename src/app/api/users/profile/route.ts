@@ -6,44 +6,45 @@ import { getDataFromToken } from "@/helpers/getDataFromToken";
 connect()
 
 export async function POST(request: NextRequest) {
-    try {
-        console.log("POST /api/users/profile called"); // Debug log
-        // Extract userId from the token
-        const userId = getDataFromToken(request);
-    
-        const reqBody = await request.json();
-        const { playlistName } = reqBody;
-    
-        // Validate input
-        if (!playlistName || typeof playlistName !== "string") {
-          return NextResponse.json({ error: "Invalid or missing playlistName" }, { status: 400 });
-        }
-    
-        // Check if the playlist name is unique for the user
-        const existingPlaylist = await Playlist.findOne({ userId, name: playlistName });
-        if (existingPlaylist) {
-          return NextResponse.json(
-            { error: "A playlist with this name already exists for the user" },
-            { status: 400 }
-          );
-        }
-    
-        // Create a new playlist
-        const newPlaylist = await Playlist.create({
-          owner: userId,
-          name: playlistName,
-          music: [], // Default to an empty array
-        });
-    
-        return NextResponse.json({
-          message: "Playlist created successfully",
-          playlist: newPlaylist,
+  try {
+    console.log("POST /api/users/profile called"); // Debug log
 
-        })
-      } catch (error: any) {
-        console.error("Error in POST /api/users/profile:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
+    // Extract userId from the token
+    const userId = getDataFromToken(request);
+
+    const reqBody = await request.json();
+    const { playlistName } = reqBody;
+
+    // Validate input
+    if (!playlistName || typeof playlistName !== "string") {
+      return NextResponse.json({ error: "Invalid or missing playlistName" }, { status: 400 });
+    }
+
+    // Create a new playlist
+    const newPlaylist = await Playlist.create({
+      owner: userId,
+      name: playlistName,
+      music: [], // Default to an empty array
+    });
+
+    return NextResponse.json({
+      message: "Playlist created successfully",
+      playlist: newPlaylist,
+    });
+  } catch (error: any) {
+    // Handle duplicate key error
+    if (error.code === 11000) {
+      console.error("Duplicate key error:", error.message); // Log the error for debugging
+      return NextResponse.json(
+        { error: "A playlist with this name already exists for the user" },
+        { status: 400 }
+      );
+    }
+
+    // Handle other errors
+    console.error("Error in POST /api/users/profile:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 export async function GET(request: NextRequest) {

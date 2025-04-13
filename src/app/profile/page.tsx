@@ -125,51 +125,90 @@ export const Logo = () => {
 
 
 const Dashboard = () => {
-  // Define the type for playlists
-  
   type Playlist = {
-    id: string;
+    _id: string;
     name: string;
-    videos: number;
+    description?: string;
+    createdAt: string;
+    updatedAt: string;
   };
 
-  // State to manage playlists
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
-
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Fetch playlists from the backend
+  const fetchPlaylists = async () => {
+    try {
+      setLoading(true);
+      setError(null); // Reset error state
+      const response = await axios.get("/api/users/profile");
+      setPlaylists(response.data.playlists);
+    } catch (error: any) {
+      console.error("Error fetching playlists:", error);
+      setError("Failed to load playlists. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlaylists();
+  }, []);
+
   // Add a new playlist
-  const handleAddNew = () => {
-    const newPlaylist: Playlist = {
-      id: Date.now().toString(), // Unique ID based on timestamp
-      name: `Playlist ${playlists.length + 1}`,
-      videos: 0, // Default number of videos
-    };
-    setPlaylists([...playlists, newPlaylist]); // Add the new playlist to the state
+  const handleAddNew = async () => {
+    try {
+      const playlistName = `Playlist ${playlists.length + 1}`;
+      const response = await axios.post("/api/users/profile", { playlistName });
+      setPlaylists([...playlists, response.data.playlist]);
+      toast.success("Playlist created successfully!");
+    } catch (error: any) {
+      console.error("Error creating playlist:", error);
+      toast.error(error.response?.data?.error || "Failed to create playlist. Please try again.");
+    }
   };
 
   // Delete a playlist
-  const handleDelete = (id: string) => {
-    setPlaylists(playlists.filter((playlist) => playlist.id !== id)); // Remove the playlist with the given ID
+  const handleDelete = async (id: string) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this playlist?");
+    if (!confirmDelete) return;
+
+    try {
+      await axios.delete("/api/users/profile", { data: { playlistId: id } });
+      setPlaylists(playlists.filter((playlist) => playlist._id !== id));
+      toast.success("Playlist deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting playlist:", error);
+      toast.error("Failed to delete playlist. Please try again.");
+    }
   };
 
-  // Edit handler for a specific playlist
+  // Navigate to the workspace
   const handleEdit = (id: string) => {
-    router.push(`/profile/workspace?id=${id}`); // Navigate to the workspace with the playlist ID
+    router.push(`/profile/workspace?id=${id}`);
   };
 
   return (
-
     <div className="flex flex-1 flex-col h-screen rounded-tl-2xl rounded-tr-2xl overflow-hidden border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
       {/* Navbar */}
       <header className="sticky top-0 z-10 bg-black p-6 border-b border-neutral-700 flex justify-between items-center rounded-tl-2xl rounded-tr-2xl">
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <button
-          onClick={handleAddNew} // Add a new playlist when clicked
-          className="bg-slate-100 grid place-items-center py-2 px-4 rounded-full font-bold shadow-md"
-        >
-          Add New
-        </button>
+        <div className="flex space-x-4">
+          <button
+            onClick={handleAddNew}
+            className="bg-slate-100 grid place-items-center py-2 px-4 rounded-full font-bold shadow-md"
+          >
+            Add New
+          </button>
+          <button
+            onClick={fetchPlaylists}
+            className="bg-slate-100 grid place-items-center py-2 px-4 rounded-full font-bold shadow-md"
+          >
+            Refresh
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -178,11 +217,14 @@ const Dashboard = () => {
           Created Playlists:
         </h2>
 
-        {/* Render the list of playlists */}
-        <div className="w-full mx-auto">
-          {Array.isArray(playlists) && playlists.map((playlist) => (
+        {loading ? (
+          <p className="text-center text-gray-500">Loading playlists...</p>
+        ) : error ? (
+          <p className="text-center text-red-500">{error}</p>
+        ) : playlists.length > 0 ? (
+          playlists.map((playlist) => (
             <div
-              key={playlist.id}
+              key={playlist._id}
               className="group relative bg-black border border-gray-700 rounded-lg overflow-hidden shadow-lg flex mb-4"
             >
               {/* Left: Image Placeholder */}
@@ -200,17 +242,21 @@ const Dashboard = () => {
                     Name: {playlist.name}
                   </h2>
                   <p className="mt-1 text-md font-bold text-gray-300">
-                    No. of videos: {playlist.videos}
+                    Description: {playlist.description || "No description provided"}
+                  </p>
+                  <p className="mt-1 text-md font-bold text-gray-300">
+                    Created At: {new Date(playlist.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="flex justify-end space-x-4 mt-4">
-                  <button onClick={() => handleEdit(playlist.id)} // Pass the playlist ID
+                  <button
+                    onClick={() => handleEdit(playlist._id)}
                     className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
                   >
                     Activate
                   </button>
                   <button
-                    onClick={() => handleDelete(playlist.id)} // Delete the playlist
+                    onClick={() => handleDelete(playlist._id)}
                     className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
                   >
                     Delete
@@ -218,11 +264,11 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          ))
+        ) : (
+          <p className="text-center text-gray-500">No playlists found.</p>
+        )}
       </div>
     </div>
-    
   );
 };
-

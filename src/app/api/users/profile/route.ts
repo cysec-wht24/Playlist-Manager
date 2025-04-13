@@ -7,6 +7,7 @@ connect()
 
 export async function POST(request: NextRequest) {
     try {
+        console.log("POST /api/users/profile called"); // Debug log
         // Extract userId from the token
         const userId = getDataFromToken(request);
     
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
     
         // Create a new playlist
         const newPlaylist = await Playlist.create({
-          userId,
+          owner: userId,
           name: playlistName,
           music: [], // Default to an empty array
         });
@@ -37,8 +38,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           message: "Playlist created successfully",
           playlist: newPlaylist,
-        });
+
+        })
       } catch (error: any) {
+        console.error("Error in POST /api/users/profile:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 }
@@ -52,6 +55,14 @@ export async function GET(request: NextRequest) {
         const playlists = await Playlist.find({ owner: userId }).select(
           "name description createdAt updatedAt"
         );
+
+        // Check if no playlists exist
+        if (!playlists || playlists.length === 0) {
+            return NextResponse.json({
+            message: "No playlists found for the user",
+            playlists: [],
+            });
+        }
     
         // Return the playlists
         return NextResponse.json({
@@ -141,7 +152,7 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({
           message: "Playlist deleted successfully",
           playlist: deletedPlaylist,
-        });
+        })
       } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema({
+const playlistSchema = new mongoose.Schema({
     owner: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "users",
@@ -26,6 +26,6 @@ const userSchema = new mongoose.Schema({
 // Enforce unique playlist names per user
 playlistSchema.index({ owner: 1, name: 1 }, { unique: true });
 
-const User = mongoose.models.users || mongoose.model("users", userSchema);
+const Playlist = mongoose.models.playlists || mongoose.model("playlists", playlistSchema);
 
-export default User;
+export default Playlist;

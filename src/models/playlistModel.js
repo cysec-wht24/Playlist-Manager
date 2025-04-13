@@ -10,13 +10,11 @@ const userSchema = new mongoose.Schema({
         {
             type: mongoose.Schema.Types.ObjectId,
             ref: "videos",
-            unique: true,
         },
     ],
     name: {
         type: String,
         required: [true, "Please provide a playlist name"],
-        unique: true,
     },
     description: {
         type: String,
@@ -24,6 +22,9 @@ const userSchema = new mongoose.Schema({
     },
 }, { timestamps: true }); // createdAt Date
 // updatedAt Date
+
+// Enforce unique playlist names per user
+playlistSchema.index({ owner: 1, name: 1 }, { unique: true });
 
 const User = mongoose.models.users || mongoose.model("users", userSchema);
 

@@ -9,6 +9,14 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 
+type Playlist = {
+  _id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 // Optional, maybe should be in route.ts of profile
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
@@ -123,15 +131,8 @@ export const Logo = () => {
   );
 };
 
-
 const Dashboard = () => {
-  type Playlist = {
-    _id: string;
-    name: string;
-    description?: string;
-    createdAt: string;
-    updatedAt: string;
-  };
+
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(false);

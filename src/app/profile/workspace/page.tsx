@@ -29,8 +29,10 @@ export default function Workspace() {
             <div className="w-1/3 bg-gray-800 rounded-xl border border-white flex flex-col">
                 
                 {/* Upload Button */}
-                <div className="h-20 bg-gray-700 rounded-xl flex items-center justify-center">
-                <button className="px-4 py-2 border border-white rounded-md">Upload</button>
+                <div className="h-20 bg-gray-700 rounded-xl border-b-2 border-white flex items-center justify-center">
+                <button className="px-4 py-2 rounded-md bg-black text-white shadow-md hover:bg-gray-800 hover:shadow-lg transition-all duration-300">
+                Upload
+                </button>
                 </div>
 
                 {/* Playlist Items */}

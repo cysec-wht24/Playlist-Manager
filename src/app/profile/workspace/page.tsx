@@ -1,10 +1,11 @@
 "use client";
-import { useSearchParams } from "next/navigation";
 import React from "react";
+import { CldVideoPlayer } from 'next-cloudinary';
+import { CldUploadButton } from 'next-cloudinary';
+import 'next-cloudinary/dist/cld-video-player.css';
 
 export default function Workspace() {
-    const searchParams = useSearchParams();
-    const playlistId = searchParams.get("playlistId");
+
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
@@ -15,9 +16,17 @@ export default function Workspace() {
             <div className="flex-1 flex flex-col space-y-4">
                 
                 {/* Video Workspace */}
-                <div className="flex-[3] bg-gray-800 rounded-xl border border-white p-4">
-                <p className="text-lg font-semibold">Video and Workspace for Playlist ID:</p>
+                {/* <div className="flex-[3] bg-gray-800 rounded-xl border border-white p-4"> */}
+                <div className="w-full h-full relative overflow-hidden rounded-lg">
+                <CldVideoPlayer
+                    id="adaptive-bitrate-streaming"
+                    src="https://res.cloudinary.com/dlcdnrtoh/video/upload/v1745097381/samples/dance-2.mp4"
+                    transformation={{ streaming_profile: 'hd' }}
+                    sourceTypes={['hls']}
+                    className="absolute top-0 left-0 w-full h-full object-cover"
+                />
                 </div>
+                {/* </div> */}
 
                 {/* Editing Settings */}
                 <div className="flex-[1] bg-gray-800 rounded-xl border border-white p-4">
@@ -30,9 +39,15 @@ export default function Workspace() {
                 
                 {/* Upload Button */}
                 <div className="h-20 bg-gray-700 rounded-xl border-b-2 border-white flex items-center justify-center">
-                <button className="px-4 py-2 rounded-md bg-black text-white shadow-md hover:bg-gray-800 hover:shadow-lg transition-all duration-300">
+
+                <CldUploadButton
+                signatureEndpoint="<Endpoint (ex: /api/sign-cloudinary-params)>"
+                uploadPreset="<Upload Preset>"
+                className="px-4 py-2 rounded-md bg-black text-white shadow-md hover:bg-gray-800 hover:shadow-lg transition-all duration-300"
+                />
+                {/* <button className="px-4 py-2 rounded-md bg-black text-white shadow-md hover:bg-gray-800 hover:shadow-lg transition-all duration-300">
                 Upload
-                </button>
+                </button> */}
                 </div>
 
                 {/* Playlist Items */}

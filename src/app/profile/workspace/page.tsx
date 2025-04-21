@@ -1,11 +1,32 @@
 "use client";
 import React from "react";
-import { CldVideoPlayer } from 'next-cloudinary';
-import { CldUploadButton } from 'next-cloudinary';
+import { CldUploadWidget } from 'next-cloudinary';
 import 'next-cloudinary/dist/cld-video-player.css';
+import { CldVideoPlayer } from 'next-cloudinary';
+
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
+
 
 export default function Workspace() {
-
+    
+    const handleUploadSuccess = async (result: any, { widget }: any) => {
+        try {
+            // Close the widget UI
+            // widget.close(); // it closes automatically after upload
+      
+            // Send the *entire* `result` object to your backend
+            const response = await axios.post('/api/users/workspace', result);
+            console.log('Backend response:', response.data);
+            toast.success('Upload data saved successfully!');
+            
+            // Redirect or refresh as needed
+            // window.location.reload();
+          } catch (error: any) {
+            console.error('Error saving upload data:', error);
+            toast.error('Failed to save upload data.');
+          }
+      };
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
@@ -16,17 +37,23 @@ export default function Workspace() {
             <div className="flex-1 flex flex-col space-y-4">
                 
                 {/* Video Workspace */}
-                {/* <div className="flex-[3] bg-gray-800 rounded-xl border border-white p-4"> */}
-                <div className="w-full h-full relative overflow-hidden rounded-lg">
-                <CldVideoPlayer
-                    id="adaptive-bitrate-streaming"
-                    src="https://res.cloudinary.com/dlcdnrtoh/video/upload/v1745097381/samples/dance-2.mp4"
-                    transformation={{ streaming_profile: 'hd' }}
-                    sourceTypes={['hls']}
-                    className="absolute top-0 left-0 w-full h-full object-cover"
-                />
+                <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                {/* <CldVideoPlayer id="adaptive-bitrate-streaming" 
+                width="1620"
+                height="1080"
+                src="<Your Public ID>"
+                transformation={{
+                    streaming_profile: 'hd',
+                }}
+                sourceTypes={['hls']}
+                /> */}
+                <iframe
+                    src="https://res.cloudinary.com/dlcdnrtoh/video/upload/t_my_transformation/samples/cld-sample-video.mp4"
+                    className="absolute top-0 left-0 w-full h-full"
+                    allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
                 </div>
-                {/* </div> */}
 
                 {/* Editing Settings */}
                 <div className="flex-[1] bg-gray-800 rounded-xl border border-white p-4">
@@ -40,14 +67,17 @@ export default function Workspace() {
                 {/* Upload Button */}
                 <div className="h-20 bg-gray-700 rounded-xl border-b-2 border-white flex items-center justify-center">
 
-                <CldUploadButton
-                signatureEndpoint="<Endpoint (ex: /api/sign-cloudinary-params)>"
-                uploadPreset="<Upload Preset>"
-                className="px-4 py-2 rounded-md bg-black text-white shadow-md hover:bg-gray-800 hover:shadow-lg transition-all duration-300"
-                />
-                {/* <button className="px-4 py-2 rounded-md bg-black text-white shadow-md hover:bg-gray-800 hover:shadow-lg transition-all duration-300">
-                Upload
-                </button> */}
+                <CldUploadWidget
+                signatureEndpoint="/api/users/sign-cloudinary-params"
+                options={{ sources: ['local', 'url', 'unsplash'] }}
+                onSuccess={handleUploadSuccess}>
+                {({ open }) => (
+                    <button className="px-4 py-2 rounded-md bg-black text-white shadow-md hover:bg-gray-800 hover:shadow-lg transition-all duration-300" 
+                    onClick={() => open()}>
+                    Upload Video
+                    </button>
+                )}
+                </CldUploadWidget>
                 </div>
 
                 {/* Playlist Items */}
@@ -70,3 +100,4 @@ export default function Workspace() {
 
     );
 }
+

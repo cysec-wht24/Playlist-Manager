@@ -32,9 +32,10 @@ export default function Workspace() {
             setLoading(true);
             setError(null);
             const response = await axios.get(`/api/users/workspace?id=${encodeURIComponent(playlistId)}`);
-            console.log('Video details:', response.data);
-            const videos: Video[] = response.data.videos;
-            setVideoDetails(videos);
+            console.log('API Response', response.data);
+            // const videos: Video[] = response.data.videos;
+            setVideoDetails([...response.data.videos]);
+            console.log('Video detail at the end of fetchVideoDetails: ', videoDetails);
         } catch (err: any) {
             console.error('Error fetching video details:', err);
             setError('Failed to load video details. Please try again later.');
@@ -45,6 +46,10 @@ export default function Workspace() {
     
         fetchVideoDetails();
       }, [playlistId]);
+
+      useEffect(() => {
+        console.log('Updated videoDetails:', videoDetails);
+      }, [videoDetails]);
         
     const handleUploadSuccess = async (result: any, { widget }: any) => {
         if (!playlistId) {

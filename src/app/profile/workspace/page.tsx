@@ -15,11 +15,18 @@ interface Video {
   
 export default function Workspace() {
     const [videoDetails, setVideoDetails] = useState<Video[]>([]);
+    const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     
+    
     const searchParams = useSearchParams();
     const playlistId = searchParams.get('id');
+
+      const handleVideoClick = (video: Video) => {
+        const videoUrl = `https://res.cloudinary.com/dlcdnrtoh/video/upload/${video.public_id}.mp4`;
+        setSelectedVideoUrl(videoUrl);
+      };
     
     useEffect(() => {
         const fetchVideoDetails = async () => {
@@ -33,9 +40,19 @@ export default function Workspace() {
             setError(null);
             const response = await axios.get(`/api/users/workspace?id=${encodeURIComponent(playlistId)}`);
             console.log('API Response', response.data);
-            // const videos: Video[] = response.data.videos;
-            setVideoDetails([...response.data.videos]);
+            const videos: Video[] = response.data.videos;
+            setVideoDetails([...videos]);
             console.log('Video detail at the end of fetchVideoDetails: ', videoDetails);
+            
+            // Set the first video's URL if available
+            if (videos.length > 0) {
+                const firstVideo = videos[0];
+                const videoUrl = `https://res.cloudinary.com/dlcdnrtoh/video/upload/${firstVideo.public_id}.mp4`;
+                setSelectedVideoUrl(videoUrl);
+            } else {
+                setSelectedVideoUrl(null);
+            }
+
         } catch (err: any) {
             console.error('Error fetching video details:', err);
             setError('Failed to load video details. Please try again later.');
@@ -102,12 +119,18 @@ export default function Workspace() {
                         }}
                         sourceTypes={['hls']}
                         /> */}
-                        <iframe
-                            src="https://res.cloudinary.com/dlcdnrtoh/video/upload/t_my_transformation/samples/cld-sample-video.mp4"
-                            className="absolute top-0 left-0 w-full h-full"
-                            allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-                            allowFullScreen
-                        ></iframe>
+                        {selectedVideoUrl ? (
+                            <iframe
+                                src={selectedVideoUrl}
+                                className="absolute top-0 left-0 w-full h-full"
+                                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                                allowFullScreen
+                            ></iframe>
+                        ) : (
+                            <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center text-white">
+                                No video selected
+                            </div>
+                        )}
                         </div>
 
                         {/* Editing Settings */}
@@ -143,7 +166,9 @@ export default function Workspace() {
                                 <p>No videos found in this playlist.</p>
                             )}
                             {videoDetails.map((video, index) => (
-                                <div key={index} className="flex items-center space-x-4 p-3 border border-white rounded-md">
+                                <div key={index} className="flex items-center space-x-4 p-3 border border-white rounded-md"
+                                onClick={() => handleVideoClick(video)}
+                                    >
                                 <div className="w-16 h-12 border border-white rounded-md bg-blue-800">
                                     {video.thumbnail ? (
                                     <img

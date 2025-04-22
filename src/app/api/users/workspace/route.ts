@@ -2,9 +2,18 @@ import {connect} from "@/dbConfig/dbConfig";
 import { NextRequest, NextResponse } from "next/server";
 import { getDataFromToken } from "@/helpers/getDataFromToken";
 import { v2 as cloudinary } from 'cloudinary';
+
 import Playlist from '@/models/playlistModel';
+import mongoose from 'mongoose';
 
 connect()
+
+cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
+  api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!,
+  api_secret: process.env.CLOUDINARY_API_SECRET!,
+});
+
 
 export async function POST(request: NextRequest) {
     try {
@@ -59,11 +68,127 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-    //so in get request I would want to retreive the videos inside a playlist inside the user's account from cloudinary
-    //while retreiving I would need thier their title, thumbnail, and other things required to play it I don't actually know what is that 
+  try {
+    // Authenticate the user
+    const userId = await getDataFromToken(request);
+    console.log('User ID backend API:', userId);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Extract playlistId from query parameters
+    const playlistId = request.nextUrl.searchParams.get('id');
+    console.log('Playlist ID backend API:', playlistId);
+
+    // Validate the playlistId
+    if (!playlistId || !mongoose.Types.ObjectId.isValid(playlistId)) {
+      return NextResponse.json({ error: 'Invalid playlist ID' }, { status: 400 });
+    }
+    
+    // Fetch the playlist document
+    const playlist = await Playlist.findOne({ _id: playlistId, owner: userId });
+
+    if (!playlist) {
+      return NextResponse.json({ error: 'Playlist not found' }, { status: 404 });
+    }
+
+    const publicIds: string[] = playlist.videos;
+
+    // Fetch video details from Cloudinary for each public_id
+    const details = await Promise.all(
+      publicIds.map(async (id) => {
+        try {
+          const result = await cloudinary.api.resource(id, {
+            resource_type: 'video',
+            
+          });
+          return {
+            public_id: id,
+            thumbnail: result.secure_url,
+            original_name: result.original_filename,
+          };
+        } catch (error) {
+          console.error(`Error fetching details for public_id ${id}:`, error);
+          return {
+            public_id: id,
+            thumbnail: null,
+            original_name: null,
+          };
+        }
+      })
+    );
+
+    return NextResponse.json({ videos: details });
+  } catch (error) {
+    console.error('Error retrieving playlist videos:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }
 
-export async function DELETE(request: NextRequest) {}
+export async function DELETE(request: NextRequest) {
+  try {
+    // Authenticate the user
+    const userId = await getDataFromToken(request);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Extract playlistId from query parameters
+    const playlistId = request.nextUrl.searchParams.get('id');
+    console.log('Playlist ID backend API:', playlistId);
+
+    // Validate the playlistId
+    if (!playlistId || !mongoose.Types.ObjectId.isValid(playlistId)) {
+      return NextResponse.json({ error: 'Invalid playlist ID' }, { status: 400 });
+    }
+
+    // Parse request body
+    const { public_id} = await request.json();
+
+    // Validate inputs
+    if (!public_id) {
+      return NextResponse.json(
+        { error: 'Missing public_id' },
+        { status: 400 }
+      );
+    }
+
+    // Delete video from Cloudinary
+    const cloudinaryResponse = await cloudinary.uploader.destroy(public_id, {
+      resource_type: 'video',
+      invalidate: true, // Optional: Invalidate cached versions
+    });
+
+    if (cloudinaryResponse.result !== 'ok') {
+      return NextResponse.json(
+        { error: 'Failed to delete video from Cloudinary' },
+        { status: 500 }
+      );
+    }
+
+    // Update the playlist by removing the video's public_id
+    const updatedPlaylist = await Playlist.findOneAndUpdate(
+      { _id: playlistId, owner: userId },
+      { $pull: { videos: public_id } },
+      { new: true }
+    );
+
+    if (!updatedPlaylist) {
+      return NextResponse.json(
+        { error: 'Playlist not found or not owned by user' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      message: 'Video removed from playlist and deleted from Cloudinary successfully',
+      playlist: updatedPlaylist,
+    });
+  } catch (error) {
+    console.error('Error removing video from playlist:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
 
 // video-upload will have two function one to upload POST, 
 // one to transform inside the POST also the post will set 
@@ -73,5 +198,10 @@ export async function DELETE(request: NextRequest) {}
 // update function thats it.
 
 //in Post function first of all check if it is a video or not
+
+
+ //so in get request I would want to retreive the videos inside a playlist inside the user's account from cloudinary
+    //only retreive public id thats it from that particular playlist for that particular user rest you can retrive in frontend
+    // using cloudinary sdk 
 
 

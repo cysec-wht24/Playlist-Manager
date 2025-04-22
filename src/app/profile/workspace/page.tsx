@@ -1,30 +1,57 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { CldUploadWidget } from 'next-cloudinary';
 import 'next-cloudinary/dist/cld-video-player.css';
 import { CldVideoPlayer } from 'next-cloudinary';
-
+import { useSearchParams } from "next/navigation";
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 
 export default function Workspace() {
+  
     
     const handleUploadSuccess = async (result: any, { widget }: any) => {
+        console.log('Upload result:', result);
+        const searchParams = new URLSearchParams(window.location.search);
+            const playlistId = searchParams.get("id");
+
+            if (!playlistId) {
+                console.error('Playlist ID is missing.');
+                return;
+              }
         try {
+            
+            const public_id = result?.info?.public_id;
+
+            if (!public_id) {
+                console.error('public_id is missing in the result object.');
+                return;
+            }
+
+            const response = await axios.post('/api/users/workspace', {
+                public_id,
+                playlistId
+            });
+
             // Close the widget UI
             // widget.close(); // it closes automatically after upload
       
             // Send the *entire* `result` object to your backend
-            const response = await axios.post('/api/users/workspace', result);
+            // const response = await axios.post('/api/users/workspace', {...result, playlistId: playlistId});
+            
             console.log('Backend response:', response.data);
             toast.success('Upload data saved successfully!');
             
             // Redirect or refresh as needed
             // window.location.reload();
           } catch (error: any) {
-            console.error('Error saving upload data:', error);
-            toast.error('Failed to save upload data.');
+            if (axios.isAxiosError(error)) {
+                console.error('Server responded with:', error.response?.data);
+              } else {
+                console.error('Unexpected error:', error);
+              }
+              toast.error('Failed to save upload data.');
           }
       };
 
@@ -63,7 +90,7 @@ export default function Workspace() {
 
             {/* Right Column: Playlist List */}
             <div className="w-1/3 bg-gray-800 rounded-xl border border-white flex flex-col">
-                
+           
                 {/* Upload Button */}
                 <div className="h-20 bg-gray-700 rounded-xl border-b-2 border-white flex items-center justify-center">
 

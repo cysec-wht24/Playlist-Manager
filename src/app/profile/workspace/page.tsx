@@ -166,27 +166,33 @@ export default function Workspace() {
                                 <p>No videos found in this playlist.</p>
                             )}
                             {videoDetails.map((video, index) => (
-                                <div key={index} className="flex items-center space-x-4 p-3 border border-white rounded-md"
+
+                                <div
+                                key={index}
+                                className="flex items-center space-x-4 p-3 border border-white rounded-md"
                                 onClick={() => handleVideoClick(video)}
-                                    >
+                                >
                                 <div className="w-16 h-12 border border-white rounded-md bg-blue-800">
-                                    {video.thumbnail ? (
+                                {video.thumbnail ? (
                                     <img
-                                        src={video.thumbnail}
-                                        alt={video.original_name || 'Video'}
-                                        className="w-full h-full object-cover rounded-md"
+                                    src={video.thumbnail}
+                                    alt={video.original_name || 'Video'}
+                                    className="w-full h-full object-cover rounded-md"
+                                    loading="lazy"
+                                    title={video.original_name || 'Video'}
                                     />
-                                    ) : (
+                                ) : (
                                     <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">
-                                        No Thumbnail
+                                    No Thumbnail
                                     </div>
-                                    )}
+                                )}
                                 </div>
                                 <div>
-                                    <div className="text-white">{video.original_name || 'Untitled Video'}</div>
-                                    {/* <div className="text-sm text-gray-300">Posted date</div> */}
+                                <div className="text-white">{video.original_name || 'Untitled Video'}</div>
+                                {/* <div className="text-sm text-gray-300">Posted date</div> */}
                                 </div>
                                 </div>
+
                             ))}
                         </div>
                     </div>

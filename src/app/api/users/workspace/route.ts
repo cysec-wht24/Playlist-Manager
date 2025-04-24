@@ -139,6 +139,7 @@ export async function DELETE(request: NextRequest) {
 
     // Validate the playlistId
     if (!playlistId || !mongoose.Types.ObjectId.isValid(playlistId)) {
+      console.log('Invalid playlist ID');
       return NextResponse.json({ error: 'Invalid playlist ID' }, { status: 400 });
     }
 

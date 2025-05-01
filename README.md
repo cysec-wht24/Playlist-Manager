@@ -1,6 +1,56 @@
 # Playlist-Manager
 
-![alt text](<Structure.png>)
+This project is called **Playlist-Manager**. Below are visuals showcasing the app's structure and interface at various stages.
+
+---
+
+### 🔧 Project Structure
+
+![Structure](./pictures/Structure.png)
+
+---
+
+### 🏠 Homepage
+
+![Homepage](./pictures/Homepage.png)
+
+---
+
+### 🔑 Login Screen
+
+![Login](./pictures/Login.png)
+
+---
+
+### 📝 Sign-Up Screen
+
+![Sign Up](./pictures/SignUp.png)
+
+---
+
+### 📂 Empty Workspace
+
+![Empty Workspace](./pictures/EmptyWorkspace.png)
+
+---
+
+### 📊 Dashboard
+
+![Dashboard](./pictures/Dashboard.png)
+
+---
+
+### ⬆️ Upload Widget
+
+![Upload Widget](./pictures/Upload%20Widget.png)
+
+---
+
+### 🎥 Videos View
+
+![Videos](./pictures/Videos.png)
+
+---
 
 ## Command History 
 

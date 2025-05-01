@@ -14,6 +14,23 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET!,
 });
 
+function generateThumbnailUrl(
+  publicId: string,
+  {
+    startOffset = '0',     
+    width       = 320,     
+    height      = 180      
+  } = {}
+): string {
+  return cloudinary.url(publicId, {
+    resource_type: 'video',               
+    format: 'jpg',                        
+    transformation: [
+      { start_offset: startOffset },      
+      { width, height, crop: 'fill' }     
+    ]
+  });
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -71,25 +88,20 @@ export async function GET(request: NextRequest) {
   try {
     // Authenticate the user
     const userId = await getDataFromToken(request);
-    console.log('User ID backend API:', userId);
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Extract playlistId from query parameters
-    const playlistId = request.nextUrl.searchParams.get('id');
-    console.log('Playlist ID backend API:', playlistId);
-
-    // Validate the playlistId
+    // Extract and validate playlistId from query parameters
+    const playlistId = request.nextUrl.searchParams.get("id");
     if (!playlistId || !mongoose.Types.ObjectId.isValid(playlistId)) {
-      return NextResponse.json({ error: 'Invalid playlist ID' }, { status: 400 });
+      return NextResponse.json({ error: "Invalid playlist ID" }, { status: 400 });
     }
-    
+
     // Fetch the playlist document
     const playlist = await Playlist.findOne({ _id: playlistId, owner: userId });
-
     if (!playlist) {
-      return NextResponse.json({ error: 'Playlist not found' }, { status: 404 });
+      return NextResponse.json({ error: "Playlist not found" }, { status: 404 });
     }
 
     const publicIds: string[] = playlist.videos;
@@ -99,20 +111,28 @@ export async function GET(request: NextRequest) {
       publicIds.map(async (id) => {
         try {
           const result = await cloudinary.api.resource(id, {
-            resource_type: 'video',
-            
+            resource_type: "video",
           });
+
+          const thumbnail_url = generateThumbnailUrl(id, {
+            startOffset: "2", 
+            width: 640,
+            height: 360,
+          });
+
           return {
             public_id: id,
-            thumbnail: result.secure_url,
             original_name: result.original_filename,
+            secure_url: result.secure_url,
+            thumbnail_url,
           };
         } catch (error) {
           console.error(`Error fetching details for public_id ${id}:`, error);
           return {
             public_id: id,
-            thumbnail: null,
             original_name: null,
+            secure_url: null,
+            thumbnail_url: null,
           };
         }
       })
@@ -120,10 +140,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ videos: details });
   } catch (error) {
-    console.error('Error retrieving playlist videos:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("Error retrieving playlist videos:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
 
 export async function DELETE(request: NextRequest) {
   try {

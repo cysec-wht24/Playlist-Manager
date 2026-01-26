@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { CldUploadWidget } from 'next-cloudinary';
 import 'next-cloudinary/dist/cld-video-player.css';
-import { CldVideoPlayer } from 'next-cloudinary';
 import { useSearchParams } from "next/navigation";
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -15,18 +14,86 @@ interface Video {
   secure_url: string | null;
 }
 
+type RepeatMode = 'off' | 'video' | 'playlist';
+
 export default function Workspace() {
   const [videoDetails, setVideoDetails] = useState<Video[]>([]);
   const [selectedVideoUrl, setSelectedVideoUrl] = useState<string | null>(null);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
   const searchParams = useSearchParams();
   const playlistId = searchParams.get('id');
 
-  const handleVideoClick = (video: Video) => {
+  const handleVideoClick = (video: Video, index: number) => {
     if (video.secure_url) {
       setSelectedVideoUrl(video.secure_url);
+      setSelectedVideoId(video.public_id);
+      setCurrentVideoIndex(index);
+    }
+  };
+
+  const playNextVideo = () => {
+    if (videoDetails.length === 0) return;
+
+    const nextIndex = (currentVideoIndex + 1) % videoDetails.length;
+    const nextVideo = videoDetails[nextIndex];
+    
+    if (nextVideo && nextVideo.secure_url) {
+      setSelectedVideoUrl(nextVideo.secure_url);
+      setSelectedVideoId(nextVideo.public_id);
+      setCurrentVideoIndex(nextIndex);
+    }
+  };
+
+  const handleVideoEnded = () => {
+    if (repeatMode === 'video') {
+      // Replay the same video
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+        videoRef.current.play();
+      }
+    } else if (repeatMode === 'playlist') {
+      // Play next video in playlist
+      playNextVideo();
+    }
+    // If repeatMode is 'off', do nothing (video just ends)
+  };
+
+  const toggleRepeatMode = () => {
+    const modes: RepeatMode[] = ['off', 'video', 'playlist'];
+    const currentIndex = modes.indexOf(repeatMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setRepeatMode(modes[nextIndex]);
+    toast.success(`Repeat: ${modes[nextIndex] === 'off' ? 'Off' : modes[nextIndex] === 'video' ? 'Current Video' : 'Playlist'}`);
+  };
+
+  const getRepeatIcon = () => {
+    if (repeatMode === 'off') {
+      return (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      );
+    } else if (repeatMode === 'video') {
+      return (
+        <div className="relative">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span className="absolute -top-1 -right-1 text-[10px] font-bold">1</span>
+        </div>
+      );
+    } else {
+      return (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
+        </svg>
+      );
     }
   };
 
@@ -46,8 +113,11 @@ export default function Workspace() {
 
         if (videos.length > 0 && videos[0].secure_url) {
           setSelectedVideoUrl(videos[0].secure_url);
+          setSelectedVideoId(videos[0].public_id);
+          setCurrentVideoIndex(0);
         } else {
           setSelectedVideoUrl(null);
+          setSelectedVideoId(null);
         }
       } catch (err: any) {
         console.error('Error fetching video details:', err);
@@ -89,91 +159,266 @@ export default function Workspace() {
     }
   };
 
+  const handleDeleteVideo = async (public_id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent video from playing when clicking delete
+    
+    if (!playlistId) {
+      toast.error('Playlist ID is missing.');
+      return;
+    }
+
+    // Confirm before deleting
+    if (!confirm('Are you sure you want to delete this video? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      toast.loading('Deleting video...');
+      
+      const response = await axios.delete(`/api/users/workspace?id=${encodeURIComponent(playlistId)}`, {
+        data: { public_id }
+      });
+
+      toast.dismiss();
+      toast.success('Video deleted successfully!');
+      
+      // Remove video from local state
+      const updatedVideos = videoDetails.filter(v => v.public_id !== public_id);
+      setVideoDetails(updatedVideos);
+      
+      // If deleted video was selected, select the first available video or clear selection
+      if (selectedVideoId === public_id) {
+        if (updatedVideos.length > 0 && updatedVideos[0].secure_url) {
+          setSelectedVideoUrl(updatedVideos[0].secure_url);
+          setSelectedVideoId(updatedVideos[0].public_id);
+          setCurrentVideoIndex(0);
+        } else {
+          setSelectedVideoUrl(null);
+          setSelectedVideoId(null);
+          setCurrentVideoIndex(0);
+        }
+      }
+    } catch (error: any) {
+      toast.dismiss();
+      console.error('Error deleting video:', error);
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data?.error || 'Failed to delete video.');
+      } else {
+        toast.error('Failed to delete video.');
+      }
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
-      <div className="container mx-auto p-4">
-        <div className="flex h-[80vh] space-x-4">
-          {/* Left Column */}
-          <div className="flex-1 flex flex-col space-y-4">
-            {/* Video Workspace */}
-            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-              {selectedVideoUrl ? (
-                <video
-                  src={selectedVideoUrl}
-                  className="absolute top-0 left-0 w-full h-full"
-                  controls
-                  autoPlay
-                />
-              ) : (
-                <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center text-white">
-                  No video selected
+    <div className="min-h-screen bg-[#0f0f0f] text-white">
+      <div className="flex h-screen">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden p-6">
+          {/* Video Player */}
+          <div className="bg-black rounded-xl overflow-hidden mb-4" style={{ aspectRatio: '16/9' }}>
+            {selectedVideoUrl ? (
+              <video
+                ref={videoRef}
+                src={selectedVideoUrl}
+                className="w-full h-full"
+                controls
+                autoPlay
+                onEnded={handleVideoEnded}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-500">
+                <div className="text-center">
+                  <svg className="w-24 h-24 mx-auto mb-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-lg">No video selected</p>
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+
+          {/* Video Editor Bar */}
+          <div className="bg-[#212121] rounded-xl p-4 flex-shrink-0">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Video Editor</h3>
+              <span className="text-sm text-gray-400">
+                {selectedVideoId ? `Editing: ${selectedVideoId}` : 'No video selected'}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4">
+              {/* Aspect Ratio Controls */}
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">Aspect Ratio</label>
+                <div className="flex gap-2">
+                  <button className="px-3 py-2 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded text-sm transition-colors">
+                    16:9
+                  </button>
+                  <button className="px-3 py-2 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded text-sm transition-colors">
+                    9:16
+                  </button>
+                  <button className="px-3 py-2 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded text-sm transition-colors">
+                    1:1
+                  </button>
+                </div>
+              </div>
+
+              {/* Quality Controls */}
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">Quality</label>
+                <select className="w-full px-3 py-2 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded text-sm transition-colors border-none outline-none">
+                  <option>Auto</option>
+                  <option>1080p</option>
+                  <option>720p</option>
+                  <option>480p</option>
+                </select>
+              </div>
+
+              {/* Format Controls */}
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">Format</label>
+                <select className="w-full px-3 py-2 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded text-sm transition-colors border-none outline-none">
+                  <option>MP4</option>
+                  <option>WebM</option>
+                  <option>MOV</option>
+                </select>
+              </div>
             </div>
 
-            {/* Editing Settings */}
-            <div className="flex-[1] bg-gray-800 rounded-xl border border-white p-4">
-              <p className="text-lg font-semibold">Editing settings for the playlist</p>
+            <div className="mt-4 flex gap-3">
+              <button className="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition-colors">
+                Apply Transformations
+              </button>
+              <button className="px-6 py-2 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded-lg text-sm font-medium transition-colors">
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Playlist Sidebar */}
+        <div className="w-96 bg-[#212121] flex flex-col border-l border-[#3f3f3f]">
+          {/* Upload Header */}
+          <div className="p-4 border-b border-[#3f3f3f]">
+            <CldUploadWidget
+              signatureEndpoint="/api/users/sign-cloudinary-params"
+              options={{ sources: ['local', 'url', 'unsplash'] }}
+              onSuccess={handleUploadSuccess}>
+              {({ open }) => (
+                <button
+                  className="w-full px-4 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors flex items-center justify-center gap-2"
+                  onClick={() => open()}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Upload Video
+                </button>
+              )}
+            </CldUploadWidget>
+          </div>
+
+          {/* Playlist Header with Repeat Mode */}
+          <div className="p-4 border-b border-[#3f3f3f]">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="text-lg font-semibold">Playlist</h3>
+                <p className="text-sm text-gray-400">
+                  {videoDetails.length} {videoDetails.length === 1 ? 'video' : 'videos'}
+                </p>
+              </div>
+              
+              {/* Repeat Mode Toggle */}
+              <button
+                onClick={toggleRepeatMode}
+                className={`p-2 rounded-lg transition-all ${
+                  repeatMode === 'off' 
+                    ? 'bg-[#3f3f3f] text-gray-400 hover:bg-[#4f4f4f]' 
+                    : 'bg-red-600 text-white hover:bg-red-700'
+                }`}
+                title={`Repeat: ${repeatMode === 'off' ? 'Off' : repeatMode === 'video' ? 'Current Video' : 'Playlist'}`}
+              >
+                {getRepeatIcon()}
+              </button>
             </div>
           </div>
 
-          {/* Right Column: Playlist List */}
-          <div className="w-1/3 bg-gray-800 rounded-xl border border-white flex flex-col">
-            {/* Upload Button */}
-            <div className="h-20 bg-gray-700 rounded-xl border-b-2 border-white flex items-center justify-center">
-              <CldUploadWidget
-                signatureEndpoint="/api/users/sign-cloudinary-params"
-                options={{ sources: ['local', 'url', 'unsplash'] }}
-                onSuccess={handleUploadSuccess}>
-                {({ open }) => (
-                  <button
-                    className="px-4 py-2 rounded-md bg-black text-white shadow-md hover:bg-gray-800 hover:shadow-lg transition-all duration-300"
-                    onClick={() => open()}>
-                    Upload Video
-                  </button>
-                )}
-              </CldUploadWidget>
-            </div>
-
-            {/* Playlist Items */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {loading && <p>Loading videos...</p>}
-              {error && <p className="text-red-500">{error}</p>}
-              {!loading && !error && videoDetails.length === 0 && (
-                <p>No videos found in this playlist.</p>
-              )}
-              {videoDetails.map((video, index) => (
-                <div
-                  key={index}
-                  className="flex items-center space-x-4 p-3 border border-white rounded-md cursor-pointer"
-                  onClick={() => handleVideoClick(video)}
-                >
-                  <div className="w-16 h-12 border border-white rounded-md bg-blue-800">
+          {/* Playlist Items */}
+          <div className="flex-1 overflow-y-auto">
+            {loading && (
+              <div className="p-4 text-center text-gray-400">
+                <div className="animate-pulse">Loading videos...</div>
+              </div>
+            )}
+            
+            {error && (
+              <div className="p-4 text-center text-red-500">{error}</div>
+            )}
+            
+            {!loading && !error && videoDetails.length === 0 && (
+              <div className="p-8 text-center text-gray-500">
+                <svg className="w-16 h-16 mx-auto mb-3 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <p>No videos in this playlist</p>
+                <p className="text-sm mt-1">Upload your first video to get started</p>
+              </div>
+            )}
+            
+            {videoDetails.map((video, index) => (
+              <div
+                key={index}
+                className={`flex items-start gap-3 p-3 cursor-pointer transition-colors hover:bg-[#3f3f3f] ${
+                  selectedVideoId === video.public_id ? 'bg-[#3f3f3f]' : ''
+                }`}
+                onClick={() => handleVideoClick(video, index)}
+              >
+                <div className="relative flex-shrink-0">
+                  <div className="w-40 h-24 bg-[#0f0f0f] rounded-lg overflow-hidden">
                     {video.thumbnail_url ? (
                       <img
                         src={video.thumbnail_url}
                         alt={video.original_name || 'Video'}
-                        className="w-full h-full object-cover rounded-md"
+                        className="w-full h-full object-cover"
                         loading="lazy"
-                        title={video.original_name || 'Video'}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">
-                        No Thumbnail
+                      <div className="w-full h-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
                       </div>
                     )}
                   </div>
-                  <div>
-                    <div className="text-white">{video.original_name || 'Untitled Video'}</div>
+                  <div className="absolute bottom-1 right-1 bg-black bg-opacity-80 px-1 py-0.5 rounded text-xs">
+                    {index + 1}
                   </div>
                 </div>
-              ))}
-            </div>
+                
+                <div className="flex-1 min-w-0 pt-1">
+                  <h4 className="text-sm font-medium text-white truncate">
+                    {video.original_name || 'Untitled Video'}
+                  </h4>
+                  <p className="text-xs text-gray-400 mt-1 truncate">
+                    {video.public_id}
+                  </p>
+                </div>
+
+                {/* Delete Button */}
+                <button
+                  onClick={(e) => handleDeleteVideo(video.public_id, e)}
+                  className="flex-shrink-0 p-2 rounded-lg bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white transition-all group"
+                  title="Delete video"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     </div>
   );
 }
-
-

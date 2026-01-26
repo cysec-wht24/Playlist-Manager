@@ -8,10 +8,11 @@ import mongoose from 'mongoose';
 
 connect()
 
+// Configure Cloudinary - Make sure this runs before any API calls
 cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
-  api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!,
-  api_secret: process.env.CLOUDINARY_API_SECRET!,
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 function generateThumbnailUrl(
@@ -106,10 +107,18 @@ export async function GET(request: NextRequest) {
 
     const publicIds: string[] = playlist.videos;
 
+    // Log config to verify it's loaded
+    console.log('Cloudinary config check:', {
+      cloud_name: cloudinary.config().cloud_name,
+      api_key: cloudinary.config().api_key ? 'Set' : 'Not set',
+      api_secret: cloudinary.config().api_secret ? 'Set' : 'Not set'
+    });
+
     // Fetch video details from Cloudinary for each public_id
     const details = await Promise.all(
       publicIds.map(async (id) => {
         try {
+          // Explicitly pass config if needed
           const result = await cloudinary.api.resource(id, {
             resource_type: "video",
           });
@@ -128,11 +137,18 @@ export async function GET(request: NextRequest) {
           };
         } catch (error) {
           console.error(`Error fetching details for public_id ${id}:`, error);
+          // Return fallback data with generated thumbnail URL
+          const thumbnail_url = generateThumbnailUrl(id, {
+            startOffset: "2",
+            width: 640,
+            height: 360,
+          });
+          
           return {
             public_id: id,
-            original_name: null,
-            secure_url: null,
-            thumbnail_url: null,
+            original_name: id, // Use public_id as fallback name
+            secure_url: `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload/${id}.mp4`,
+            thumbnail_url,
           };
         }
       })
@@ -178,7 +194,7 @@ export async function DELETE(request: NextRequest) {
     // Delete video from Cloudinary
     const cloudinaryResponse = await cloudinary.uploader.destroy(public_id, {
       resource_type: 'video',
-      invalidate: true, // Optional: Invalidate cached versions
+      invalidate: true,
     });
 
     if (cloudinaryResponse.result !== 'ok') {
@@ -211,19 +227,3 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
-
-// video-upload will have two function one to upload POST, 
-// one to transform inside the POST also the post will set 
-// things up about video in the mongodb, one more function 
-// that I can think of right now is the retreival function 
-// that would retreive all playlists video, Delete function, 
-// update function thats it.
-
-//in Post function first of all check if it is a video or not
-
-
- //so in get request I would want to retreive the videos inside a playlist inside the user's account from cloudinary
-    //only retreive public id thats it from that particular playlist for that particular user rest you can retrive in frontend
-    // using cloudinary sdk 
-
-

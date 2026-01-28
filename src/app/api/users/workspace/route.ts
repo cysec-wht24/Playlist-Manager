@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
         }
     
         // Parse request body
-        const { public_id, playlistId } = await request.json();
-        console.log("Received data:", { public_id, playlistId });
+        const { public_id, playlistId, title } = await request.json();
+        console.log("Received data:", { public_id, playlistId, title });
     
         // Validate inputs
         if (!public_id) {
@@ -60,10 +60,27 @@ export async function POST(request: NextRequest) {
             );
           }
     
-        // Update the playlist by adding the new video's public_id
+        // Generate thumbnail URL
+        const thumbnailUrl = generateThumbnailUrl(public_id, {
+          startOffset: "2",
+          width: 640,
+          height: 360,
+        });
+
+        // Create proper video object
+        const videoObject = {
+          url: public_id,  // Store the public_id as url
+          title: title || public_id, // Use provided title or fallback to public_id
+          thumbnail: thumbnailUrl,
+          addedAt: new Date()
+        };
+
+        console.log("Creating video object:", videoObject);
+    
+        // Update the playlist by adding the video OBJECT (not just the string!)
         const updatedPlaylist = await Playlist.findOneAndUpdate(
           { _id: playlistId, owner: userId },
-          { $push: { videos: public_id } },
+          { $push: { videos: videoObject } },  // Push object, not string!
           { new: true }
         );
     
@@ -73,6 +90,12 @@ export async function POST(request: NextRequest) {
             { error: "Playlist not found or not owned by user" },
             { status: 404 }
           );
+        }
+
+        // Set playlist thumbnail if this is the first video
+        if (updatedPlaylist.videos.length === 1) {
+          updatedPlaylist.thumbnail = thumbnailUrl;
+          await updatedPlaylist.save();
         }
     
         return NextResponse.json({
@@ -105,56 +128,43 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Playlist not found" }, { status: 404 });
     }
 
-    const publicIds: string[] = playlist.videos;
-
-    // Log config to verify it's loaded
-    console.log('Cloudinary config check:', {
-      cloud_name: cloudinary.config().cloud_name,
-      api_key: cloudinary.config().api_key ? 'Set' : 'Not set',
-      api_secret: cloudinary.config().api_secret ? 'Set' : 'Not set'
-    });
-
-    // Fetch video details from Cloudinary for each public_id
-    const details = await Promise.all(
-      publicIds.map(async (id) => {
-        try {
-          // Explicitly pass config if needed
-          const result = await cloudinary.api.resource(id, {
-            resource_type: "video",
-          });
-
-          const thumbnail_url = generateThumbnailUrl(id, {
-            startOffset: "2", 
-            width: 640,
-            height: 360,
-          });
-
-          return {
-            public_id: id,
-            original_name: result.original_filename,
-            secure_url: result.secure_url,
-            thumbnail_url,
-          };
-        } catch (error) {
-          console.error(`Error fetching details for public_id ${id}:`, error);
-          // Return fallback data with generated thumbnail URL
-          const thumbnail_url = generateThumbnailUrl(id, {
+    // Map videos from the playlist
+    const videos = playlist.videos.map((video: any) => {
+      // Handle both old format (string) and new format (object)
+      if (typeof video === 'string') {
+        // Old format: just public_id string
+        const thumbnailUrl = generateThumbnailUrl(video, {
+          startOffset: "2",
+          width: 640,
+          height: 360,
+        });
+        
+        return {
+          public_id: video,
+          original_name: video,
+          secure_url: `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload/${video}.mp4`,
+          thumbnail_url: thumbnailUrl,
+        };
+      } else if (video && typeof video === 'object') {
+        // New format: video object with url, title, thumbnail
+        const public_id = video.url || video.public_id;
+        
+        return {
+          public_id: public_id,
+          original_name: video.title || public_id,
+          secure_url: `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload/${public_id}.mp4`,
+          thumbnail_url: video.thumbnail || generateThumbnailUrl(public_id, {
             startOffset: "2",
             width: 640,
             height: 360,
-          });
-          
-          return {
-            public_id: id,
-            original_name: id, // Use public_id as fallback name
-            secure_url: `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/video/upload/${id}.mp4`,
-            thumbnail_url,
-          };
-        }
-      })
-    );
+          }),
+        };
+      }
+      
+      return null;
+    }).filter(Boolean); // Remove any null entries
 
-    return NextResponse.json({ videos: details });
+    return NextResponse.json({ videos });
   } catch (error) {
     console.error("Error retrieving playlist videos:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -181,7 +191,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Parse request body
-    const { public_id} = await request.json();
+    const { public_id } = await request.json();
 
     // Validate inputs
     if (!public_id) {
@@ -192,22 +202,34 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete video from Cloudinary
-    const cloudinaryResponse = await cloudinary.uploader.destroy(public_id, {
-      resource_type: 'video',
-      invalidate: true,
-    });
+    try {
+      const cloudinaryResponse = await cloudinary.uploader.destroy(public_id, {
+        resource_type: 'video',
+        invalidate: true,
+      });
 
-    if (cloudinaryResponse.result !== 'ok') {
-      return NextResponse.json(
-        { error: 'Failed to delete video from Cloudinary' },
-        { status: 500 }
-      );
+      if (cloudinaryResponse.result !== 'ok' && cloudinaryResponse.result !== 'not found') {
+        console.warn('Cloudinary deletion warning:', cloudinaryResponse);
+      }
+    } catch (cloudinaryError) {
+      console.error('Cloudinary deletion error:', cloudinaryError);
+      // Continue anyway - we still want to remove from playlist
     }
 
-    // Update the playlist by removing the video's public_id
+    // Update the playlist by removing the video
+    // This handles both old format (string) and new format (object with url field)
     const updatedPlaylist = await Playlist.findOneAndUpdate(
       { _id: playlistId, owner: userId },
-      { $pull: { videos: public_id } },
+      { 
+        $pull: { 
+          videos: { 
+            $or: [
+              public_id,  // Old format: direct string match
+              { url: public_id }  // New format: match url field
+            ]
+          } 
+        } 
+      },
       { new: true }
     );
 
@@ -216,6 +238,25 @@ export async function DELETE(request: NextRequest) {
         { error: 'Playlist not found or not owned by user' },
         { status: 404 }
       );
+    }
+
+    // Update playlist thumbnail if needed
+    if (updatedPlaylist.videos.length > 0) {
+      const firstVideo = updatedPlaylist.videos[0];
+      if (typeof firstVideo === 'object' && firstVideo.thumbnail) {
+        updatedPlaylist.thumbnail = firstVideo.thumbnail;
+      } else if (typeof firstVideo === 'string') {
+        updatedPlaylist.thumbnail = generateThumbnailUrl(firstVideo, {
+          startOffset: "2",
+          width: 640,
+          height: 360,
+        });
+      }
+      await updatedPlaylist.save();
+    } else {
+      // No videos left, clear thumbnail
+      updatedPlaylist.thumbnail = null;
+      await updatedPlaylist.save();
     }
 
     return NextResponse.json({

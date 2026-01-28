@@ -24,7 +24,9 @@ export async function POST(request: NextRequest) {
     const newPlaylist = await Playlist.create({
       owner: userId,
       name: playlistName,
-      music: [], // Default to an empty array
+      videos: [], // Default to an empty array
+      description: "", // Default empty description
+      thumbnail: null, // Will be auto-set from Cloudinary when first video is added
     });
 
     return NextResponse.json({
@@ -53,9 +55,9 @@ export async function GET(request: NextRequest) {
         const userId = getDataFromToken(request);
     
         // Retrieve playlists for the user
-        const playlists = await Playlist.find({ owner: userId }).select(
-          "name description createdAt updatedAt"
-        );
+        const playlists = await Playlist.find({ owner: userId })
+          .select("name description thumbnail createdAt updatedAt videos")
+          .lean(); // Convert to plain JavaScript objects for better performance
 
         // Check if no playlists exist
         if (!playlists || playlists.length === 0) {
@@ -64,6 +66,17 @@ export async function GET(request: NextRequest) {
             playlists: [],
             });
         }
+
+        // For each playlist, if it has videos but no thumbnail, use first video's thumbnail
+        for (const playlist of playlists) {
+          if (!playlist.thumbnail && playlist.videos && playlist.videos.length > 0) {
+            // Get the first video's thumbnail from the videos array
+            const firstVideo = playlist.videos[0];
+            if (firstVideo?.thumbnail) {
+              playlist.thumbnail = firstVideo.thumbnail;
+            }
+          }
+        }
     
         // Return the playlists
         return NextResponse.json({
@@ -71,6 +84,7 @@ export async function GET(request: NextRequest) {
           playlists,
         });
       } catch (error: any) {
+        console.error("Error in GET /api/users/profile:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 }
@@ -82,29 +96,51 @@ export async function PATCH(request: NextRequest) {
     
         // Parse the request body
         const reqBody = await request.json();
-        const { playlistId, newName } = reqBody;
+        const { playlistId, newName, description } = reqBody;
     
-        // Validate input
+        // Validate playlistId
         if (!playlistId || typeof playlistId !== "string") {
           return NextResponse.json({ error: "Invalid or missing playlistId" }, { status: 400 });
         }
-        if (!newName || typeof newName !== "string") {
-          return NextResponse.json({ error: "Invalid or missing newName" }, { status: 400 });
+
+        // Prepare update object
+        const updateFields: any = {};
+        
+        // Handle name update
+        if (newName !== undefined) {
+          if (typeof newName !== "string") {
+            return NextResponse.json({ error: "Invalid newName" }, { status: 400 });
+          }
+          
+          // Check if the new name is unique for the user
+          const existingPlaylist = await Playlist.findOne({ owner: userId, name: newName });
+          if (existingPlaylist && existingPlaylist._id.toString() !== playlistId) {
+            return NextResponse.json(
+              { error: "A playlist with this name already exists for the user" },
+              { status: 400 }
+            );
+          }
+          
+          updateFields.name = newName;
+        }
+
+        // Handle description update
+        if (description !== undefined) {
+          if (typeof description !== "string") {
+            return NextResponse.json({ error: "Invalid description" }, { status: 400 });
+          }
+          updateFields.description = description;
+        }
+
+        // Check if there are fields to update
+        if (Object.keys(updateFields).length === 0) {
+          return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
         }
     
-        // Check if the new name is unique for the user
-        const existingPlaylist = await Playlist.findOne({ owner: userId, name: newName });
-        if (existingPlaylist) {
-          return NextResponse.json(
-            { error: "A playlist with this name already exists for the user" },
-            { status: 400 }
-          );
-        }
-    
-        // Update the playlist name
+        // Update the playlist
         const updatedPlaylist = await Playlist.findOneAndUpdate(
           { _id: playlistId, owner: userId }, // Ensure the playlist belongs to the user
-          { name: newName },
+          updateFields,
           { new: true } // Return the updated document
         );
     
@@ -114,7 +150,7 @@ export async function PATCH(request: NextRequest) {
     
         // Return success response
         return NextResponse.json({
-          message: "Playlist name updated successfully",
+          message: "Playlist updated successfully",
           playlist: updatedPlaylist,
         });
       } catch (error: any) {
@@ -158,5 +194,3 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 }
-
- 

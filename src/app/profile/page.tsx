@@ -13,8 +13,10 @@ type Playlist = {
   _id: string;
   name: string;
   description?: string;
+  thumbnail?: string;
   createdAt: string;
   updatedAt: string;
+  videos?: any[]; // Array of video references
 };
 
 // Optional, maybe should be in route.ts of profile
@@ -135,18 +137,24 @@ const Dashboard = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingPlaylist, setEditingPlaylist] = useState<string | null>(null);
+  const [editName, setEditName] = useState<string>("");
+  const [editDescription, setEditDescription] = useState<string>("");
   const router = useRouter();
 
   // Fetch playlists from the backend.
   const fetchPlaylists = useCallback(async () => {
-    try { //wanna remove callback just remove callBack()
+    try {
       setLoading(true);
       setError(null);
       const response = await axios.get("/api/users/profile");
+      console.log("Playlists fetched successfully:", response.data);
       setPlaylists(response.data.playlists);
     } catch (error: any) {
       console.error("Error fetching playlists:", error);
+      console.error("Error response:", error.response?.data);
       setError("Failed to load playlists. Please try again later.");
+      toast.error(error.response?.data?.error || "Failed to load playlists");
     } finally {
       setLoading(false);
     }
@@ -174,10 +182,16 @@ const Dashboard = () => {
     }
   };
 
-  // Rename a playlist
-  const handleRename = async (playlistId: string) => {
-    const newName = prompt("Enter the new name for the playlist:");
-    if (!newName || !newName.trim()) {
+  // Open edit modal for both name and description
+  const handleOpenEdit = (playlist: Playlist) => {
+    setEditingPlaylist(playlist._id);
+    setEditName(playlist.name);
+    setEditDescription(playlist.description || "");
+  };
+
+  // Save edited name and description
+  const handleSaveEdit = async (playlistId: string) => {
+    if (!editName.trim()) {
       toast.error("Playlist name cannot be empty.");
       return;
     }
@@ -185,18 +199,29 @@ const Dashboard = () => {
     try {
       const response = await axios.patch("/api/users/profile", {
         playlistId,
-        newName,
+        newName: editName,
+        description: editDescription,
       });
+      
       setPlaylists(
         playlists.map((playlist) =>
           playlist._id === playlistId ? response.data.playlist : playlist
         )
       );
-      toast.success("Playlist renamed successfully!");
+      setEditingPlaylist(null);
+      setEditName("");
+      setEditDescription("");
+      toast.success("Playlist updated successfully!");
     } catch (error: any) {
-      console.error("Error renaming playlist:", error);
-      toast.error(error.response?.data?.error || "Failed to rename playlist. Please try again.");
+      console.error("Error updating playlist:", error);
+      toast.error(error.response?.data?.error || "Failed to update playlist.");
     }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPlaylist(null);
+    setEditName("");
+    setEditDescription("");
   };
 
   // Delete a playlist
@@ -217,6 +242,17 @@ const Dashboard = () => {
   // Navigate to the workspace
   const handleEdit = (id: string) => {
     router.push(`/profile/workspace?id=${id}`);
+  };
+
+  // Get thumbnail URL from playlist's thumbnail field
+  const getThumbnailUrl = (playlist: Playlist) => {
+    // Use the playlist's thumbnail field (set from Cloudinary when videos are added)
+    if (playlist.thumbnail) {
+      return playlist.thumbnail;
+    }
+    
+    // Return null for placeholder if no thumbnail set
+    return null;
   };
 
   return (
@@ -248,59 +284,128 @@ const Dashboard = () => {
         ) : error ? (
           <p className="text-center text-red-500">{error}</p>
         ) : playlists.length > 0 ? (
-          playlists.map((playlist) => (
-            <div
-              key={playlist._id}
-              className="group relative bg-black border border-gray-700 rounded-lg overflow-hidden shadow-lg flex mb-4"
-            >
-              {/* Left: Image Placeholder */}
-              <div className="p-4 flex items-center justify-center">
-                <a href="#">
-                  <div className="h-32 w-44 bg-gray-800 flex items-center justify-center rounded-lg">
-                    <span className="text-sm text-gray-400">Image Placeholder</span>
+          playlists.map((playlist) => {
+            const thumbnailUrl = getThumbnailUrl(playlist);
+            
+            return (
+              <div
+                key={playlist._id}
+                className="group relative bg-black border border-gray-700 rounded-lg overflow-hidden shadow-lg flex mb-4"
+              >
+                {/* Left: Thumbnail */}
+                <div className="p-4 flex items-center justify-center">
+                  <div className="h-32 w-44 bg-gray-800 flex items-center justify-center rounded-lg overflow-hidden">
+                    {thumbnailUrl ? (
+                      <img 
+                        src={thumbnailUrl} 
+                        alt={playlist.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback if image fails to load
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement!.innerHTML = '<span class="text-sm text-gray-400">No Thumbnail</span>';
+                        }}
+                      />
+                    ) : (
+                      <span className="text-sm text-gray-400">No Thumbnail</span>
+                    )}
                   </div>
-                </a>
-              </div>
-              {/* Right: Playlist Details */}
-              <div className="flex-1 p-4 flex flex-col justify-between">
-                <div>
-                  <h2 className="mt-1 text-xl font-bold text-gray-300">
-                    Name: {playlist.name}
-                  </h2>
-                  <p className="mt-1 text-md font-bold text-gray-300">
-                    Description: {playlist.description || "No description provided"}
-                  </p>
-                  <p className="mt-1 text-md font-bold text-gray-300">
-                    Created At: {new Date(playlist.createdAt).toLocaleDateString()}
-                  </p>
                 </div>
-                <div className="flex justify-end space-x-4 mt-4">
-                  <button
-                    onClick={() => handleEdit(playlist._id)}
-                    className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
-                  >
-                    Activate
-                  </button>
-                  <button
-                    onClick={() => handleRename(playlist._id)}
-                    className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
-                  >
-                    Rename
-                  </button>
-                  <button
-                    onClick={() => handleDelete(playlist._id)}
-                    className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
-                  >
-                    Delete
-                  </button>
+                
+                {/* Right: Playlist Details */}
+                <div className="flex-1 p-4 flex flex-col justify-between">
+                  {editingPlaylist === playlist._id ? (
+                    /* Edit Mode */
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-400 mb-1">
+                          Playlist Name
+                        </label>
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="w-full p-2 bg-gray-800 text-gray-300 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                          placeholder="Enter playlist name..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-400 mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          className="w-full p-2 bg-gray-800 text-gray-300 rounded border border-gray-600 focus:border-blue-500 focus:outline-none resize-none"
+                          rows={3}
+                          placeholder="Enter description..."
+                        />
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <button
+                          onClick={() => handleSaveEdit(playlist._id)}
+                          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition font-semibold"
+                        >
+                          Save Changes
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition font-semibold"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Display Mode */
+                    <>
+                      <div>
+                        <h2 className="mt-1 text-xl font-bold text-gray-300">
+                          Name: {playlist.name}
+                        </h2>
+                        <p className="mt-1 text-md font-bold text-gray-300">
+                          Description: {playlist.description || "No description provided"}
+                        </p>
+                        <p className="mt-1 text-md font-bold text-gray-300">
+                          Created At: {new Date(playlist.createdAt).toLocaleDateString()}
+                        </p>
+                        {playlist.videos && playlist.videos.length > 0 && (
+                          <p className="mt-1 text-sm text-gray-400">
+                            {playlist.videos.length} video{playlist.videos.length !== 1 ? 's' : ''}
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div className="flex justify-end space-x-4 mt-4">
+                        <button
+                          onClick={() => handleEdit(playlist._id)}
+                          className="w-32 text-center px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition duration-300 text-sm font-semibold"
+                        >
+                          Activate
+                        </button>
+                        <button
+                          onClick={() => handleOpenEdit(playlist)}
+                          className="w-32 text-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition duration-300 text-sm font-semibold"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(playlist._id)}
+                          className="w-32 text-center px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition duration-300 text-sm font-semibold"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <p className="text-center text-gray-500">No playlists found.</p>
         )}
-      </div> // can make it main for SEO
+      </div>
     </div>
   );
 };

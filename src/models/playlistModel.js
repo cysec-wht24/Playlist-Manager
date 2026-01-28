@@ -8,8 +8,22 @@ const playlistSchema = new mongoose.Schema({
     },
     videos: [
         {
-            type: String,
-            ref: "videos",
+            url: {
+                type: String,
+                required: true,
+            },
+            title: {
+                type: String,
+                default: "",
+            },
+            thumbnail: {
+                type: String, // Cloudinary or YouTube thumbnail URL
+                default: null,
+            },
+            addedAt: {
+                type: Date,
+                default: Date.now,
+            }
         },
     ],
     name: {
@@ -19,6 +33,10 @@ const playlistSchema = new mongoose.Schema({
     description: {
         type: String,
         default: "",
+    },
+    thumbnail: {
+        type: String,
+        default: null, // Will store first video's thumbnail
     },
 }, { timestamps: true }); // createdAt Date
 // updatedAt Date

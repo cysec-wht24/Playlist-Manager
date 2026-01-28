@@ -24,6 +24,10 @@ export default function Workspace() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
+  const [aspectRatio, setAspectRatio] = useState<string>('original');
+  const [quality, setQuality] = useState<string>('auto');
+  const [format, setFormat] = useState<string>('mp4');
+  const [isTransforming, setIsTransforming] = useState<boolean>(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const searchParams = useSearchParams();
@@ -52,16 +56,13 @@ export default function Workspace() {
 
   const handleVideoEnded = () => {
     if (repeatMode === 'video') {
-      // Replay the same video
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
         videoRef.current.play();
       }
     } else if (repeatMode === 'playlist') {
-      // Play next video in playlist
       playNextVideo();
     }
-    // If repeatMode is 'off', do nothing (video just ends)
   };
 
   const toggleRepeatMode = () => {
@@ -94,6 +95,59 @@ export default function Workspace() {
           <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
         </svg>
       );
+    }
+  };
+
+  const handleApplyTransformations = async () => {
+    if (!selectedVideoId) {
+      toast.error('No video selected');
+      return;
+    }
+
+    if (aspectRatio === 'original' && quality === 'auto' && format === 'mp4') {
+      toast.error('Please select at least one transformation option');
+      return;
+    }
+
+    try {
+      setIsTransforming(true);
+      toast.loading('Applying transformations...');
+
+      const response = await axios.post('/api/users/transform', {
+        public_id: selectedVideoId,
+        aspectRatio,
+        quality,
+        format,
+        playlistId
+      });
+
+      toast.dismiss();
+      toast.success('Transformations applied! Video will play with new settings.');
+
+      // Update the currently playing video with the transformed URL
+      if (response.data.url) {
+        setSelectedVideoUrl(response.data.url);
+        
+        // Also update in videoDetails array
+        setVideoDetails(prevDetails => 
+          prevDetails.map(video => 
+            video.public_id === selectedVideoId 
+              ? { ...video, secure_url: response.data.url }
+              : video
+          )
+        );
+      }
+
+    } catch (error: any) {
+      toast.dismiss();
+      console.error('Error transforming video:', error);
+      if (axios.isAxiosError(error)) {
+        toast.error(error.response?.data?.error || 'Failed to apply transformations');
+      } else {
+        toast.error('Failed to apply transformations');
+      }
+    } finally {
+      setIsTransforming(false);
     }
   };
 
@@ -138,36 +192,53 @@ export default function Workspace() {
 
     try {
       const public_id = result?.info?.public_id;
+      const original_filename = result?.info?.original_filename;
+      
       if (!public_id) {
         console.error('public_id is missing in the result object.');
+        toast.error('Upload failed: No public_id');
         return;
       }
+
+      console.log('Upload result:', { public_id, original_filename });
+
       const response = await axios.post('/api/users/workspace', {
         public_id,
-        playlistId
+        playlistId,
+        title: original_filename || public_id  // Pass the filename as title
       });
 
-      toast.success('Upload data saved successfully!');
+      console.log('Server response:', response.data);
+      toast.success('Video uploaded successfully!');
+      
+      // Refresh the video list
       window.location.reload();
     } catch (error: any) {
+      console.error('Upload error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
       if (axios.isAxiosError(error)) {
+        const errorMsg = error.response?.data?.error || 'Failed to save upload data';
+        toast.error(errorMsg);
         console.error('Server responded with:', error.response?.data);
       } else {
         console.error('Unexpected error:', error);
+        toast.error('Upload failed: Unexpected error');
       }
-      toast.error('Failed to save upload data.');
     }
   };
 
   const handleDeleteVideo = async (public_id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent video from playing when clicking delete
+    e.stopPropagation();
     
     if (!playlistId) {
       toast.error('Playlist ID is missing.');
       return;
     }
 
-    // Confirm before deleting
     if (!confirm('Are you sure you want to delete this video? This action cannot be undone.')) {
       return;
     }
@@ -182,11 +253,9 @@ export default function Workspace() {
       toast.dismiss();
       toast.success('Video deleted successfully!');
       
-      // Remove video from local state
       const updatedVideos = videoDetails.filter(v => v.public_id !== public_id);
       setVideoDetails(updatedVideos);
       
-      // If deleted video was selected, select the first available video or clear selection
       if (selectedVideoId === public_id) {
         if (updatedVideos.length > 0 && updatedVideos[0].secure_url) {
           setSelectedVideoUrl(updatedVideos[0].secure_url);
@@ -239,59 +308,91 @@ export default function Workspace() {
           </div>
 
           {/* Video Editor Bar */}
-          <div className="bg-[#212121] rounded-xl p-4 flex-shrink-0">
-            <div className="flex items-center justify-between mb-3">
+          <div className="bg-[#212121] rounded-xl p-6 flex-shrink-0">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Video Editor</h3>
               <span className="text-sm text-gray-400">
                 {selectedVideoId ? `Editing: ${selectedVideoId}` : 'No video selected'}
               </span>
             </div>
             
-            <div className="grid grid-cols-3 gap-4">
-              {/* Aspect Ratio Controls */}
+            <div className="grid grid-cols-3 gap-6">
+              {/* Aspect Ratio Dropdown */}
               <div className="space-y-2">
-                <label className="text-sm text-gray-400">Aspect Ratio</label>
-                <div className="flex gap-2">
-                  <button className="px-3 py-2 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded text-sm transition-colors">
-                    16:9
-                  </button>
-                  <button className="px-3 py-2 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded text-sm transition-colors">
-                    9:16
-                  </button>
-                  <button className="px-3 py-2 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded text-sm transition-colors">
-                    1:1
-                  </button>
-                </div>
-              </div>
-
-              {/* Quality Controls */}
-              <div className="space-y-2">
-                <label className="text-sm text-gray-400">Quality</label>
-                <select className="w-full px-3 py-2 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded text-sm transition-colors border-none outline-none">
-                  <option>Auto</option>
-                  <option>1080p</option>
-                  <option>720p</option>
-                  <option>480p</option>
+                <label className="text-sm font-medium text-gray-300">Aspect Ratio</label>
+                <select 
+                  value={aspectRatio}
+                  onChange={(e) => setAspectRatio(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded-lg text-sm transition-colors border-none outline-none cursor-pointer"
+                  disabled={isTransforming}
+                >
+                  <option value="original">Original</option>
+                  <option value="16:9">16:9 (Landscape)</option>
+                  <option value="9:16">9:16 (Portrait)</option>
+                  <option value="1:1">1:1 (Square)</option>
+                  <option value="4:3">4:3 (Classic)</option>
+                  <option value="21:9">21:9 (Ultrawide)</option>
+                  <option value="4:5">4:5 (Instagram)</option>
                 </select>
               </div>
 
-              {/* Format Controls */}
+              {/* Quality Dropdown */}
               <div className="space-y-2">
-                <label className="text-sm text-gray-400">Format</label>
-                <select className="w-full px-3 py-2 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded text-sm transition-colors border-none outline-none">
-                  <option>MP4</option>
-                  <option>WebM</option>
-                  <option>MOV</option>
+                <label className="text-sm font-medium text-gray-300">Quality</label>
+                <select 
+                  value={quality}
+                  onChange={(e) => setQuality(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded-lg text-sm transition-colors border-none outline-none cursor-pointer"
+                  disabled={isTransforming}
+                >
+                  <option value="auto">Auto</option>
+                  <option value="1080p">1080p (Full HD)</option>
+                  <option value="720p">720p (HD)</option>
+                  <option value="480p">480p (SD)</option>
+                  <option value="360p">360p (Low)</option>
+                </select>
+              </div>
+
+              {/* Format Dropdown */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-300">Format</label>
+                <select 
+                  value={format}
+                  onChange={(e) => setFormat(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded-lg text-sm transition-colors border-none outline-none cursor-pointer"
+                  disabled={isTransforming}
+                >
+                  <option value="mp4">MP4</option>
+                  <option value="webm">WebM</option>
+                  <option value="mov">MOV</option>
+                  <option value="avi">AVI</option>
                 </select>
               </div>
             </div>
 
-            <div className="mt-4 flex gap-3">
-              <button className="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition-colors">
-                Apply Transformations
-              </button>
-              <button className="px-6 py-2 bg-[#3f3f3f] hover:bg-[#4f4f4f] rounded-lg text-sm font-medium transition-colors">
-                Reset
+            {/* Apply Button */}
+            <div className="mt-6">
+              <button 
+                onClick={handleApplyTransformations}
+                disabled={!selectedVideoId || isTransforming}
+                className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                {isTransforming ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Transforming...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Apply Transformations
+                  </>
+                )}
               </button>
             </div>
           </div>
